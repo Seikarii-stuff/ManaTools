@@ -46,7 +46,7 @@ function ManaInvite:OnWhisper(message, sender)
         return
     end
 
-    InviteUnit(sender)
+    C_PartyInfo.InviteUnit(sender)
 end
 
 local eventFrame = CreateFrame("Frame")
