@@ -7,6 +7,7 @@ local iterations = tonumber(arg[1]) or 100000
 local warmup = math.max(1000, math.floor(iterations / 10))
 local mock = assert(loadfile("test/mockwow.lua"))()
 local loader = loadstring or load
+local unpackValues = table.unpack or unpack
 
 local function loadFile(path, ...)
     local file = assert(io.open(path, "r"))
@@ -34,7 +35,6 @@ local function runTimed(fn, count)
     return os.clock() - start
 end
 
--- Existing NoWasteCoin benchmark remains intact.
 local cases = {
     { name = "Mythic raid", type = "raid", difficulty = 16, challenge = false, heroic = false, mythicPlus = false },
     { name = "Heroic raid", type = "raid", difficulty = 15, challenge = false, heroic = true, mythicPlus = false },
@@ -75,28 +75,25 @@ for _, case in ipairs(cases) do
     results[#results + 1] = string.format("%-16s %10.6f s  %12.0f calls/s  result=%s", case.name, elapsed, rate, tostring(allowed))
 end
 
--- ManaInvite benchmark A: cached O(1) membership lookups.
 local function benchmarkMembership(size)
     local members = {}
     for i = 1, size do
         members[#members + 1] = "Guild" .. i .. "-Realm"
     end
-    mock.setGuildMembers(table.unpack and table.unpack(members) or unpack(members))
+    mock.setGuildMembers(unpackValues(members))
     ManaInvite:RebuildGuildMembers()
 
     local target = "Guild" .. size .. "-Realm"
     for _ = 1, warmup do
         ManaInvite:IsGuildMember(target)
     end
-    local elapsed = runTimed(function(count)
+    return runTimed(function(count)
         for _ = 1, count do
             ManaInvite:IsGuildMember(target)
         end
     end, iterations)
-    return elapsed
 end
 
--- ManaInvite benchmark B: whisper processing, with guild/non-guild and relevant/irrelevant traffic.
 local function benchmarkWhispers()
     mock.setGuildMembers("Guild1-Realm", "Guild2-Realm", "Guild3-Realm", "Guild4-Realm")
     ManaInvite:RebuildGuildMembers()
@@ -111,48 +108,44 @@ local function benchmarkWhispers()
         ManaInvite:OnWhisper(messages[n], senders[n])
     end
     mock.clearInvites()
-    local elapsed = runTimed(function(count)
+    return runTimed(function(count)
         for i = 1, count do
             local n = ((i - 1) % length) + 1
             ManaInvite:OnWhisper(messages[n], senders[n])
         end
     end, iterations)
-    return elapsed
 end
 
--- ManaInvite benchmark C: wipe + rebuild for representative guild sizes.
 local function benchmarkRebuild(size)
     local members = {}
     for i = 1, size do
         members[#members + 1] = "Guild" .. i .. "-Realm"
     end
-    mock.setGuildMembers(table.unpack and table.unpack(members) or unpack(members))
+    mock.setGuildMembers(unpackValues(members))
     for _ = 1, warmup do
         ManaInvite:RebuildGuildMembers()
     end
-    local elapsed = runTimed(function(count)
-        for _ = 1, count do
+    local count = math.max(1, math.floor(iterations / 100))
+    local elapsed = runTimed(function(rebuildCount)
+        for _ = 1, rebuildCount do
             ManaInvite:RebuildGuildMembers()
         end
-    end, math.max(1, math.floor(iterations / 100)))
-    return elapsed
+    end, count)
+    return elapsed, count
 end
 
 local function appendMetric(name, elapsed, count)
     local rate = elapsed > 0 and count / elapsed or math.huge
-    results[#results + 1] = string.format("%-24s %10.6f s  %12.0f calls/s  %12.3f us/call", name, elapsed, rate, elapsed * 1000000 / count)
+    results[#results + 1] = string.format("%-28s %10.6f s  %12.0f calls/s  %12.3f us/call", name, elapsed, rate, elapsed * 1000000 / count)
 end
 
 results[#results + 1] = ""
 results[#results + 1] = "ManaInvite benchmarks"
 results[#results + 1] = "--------------------"
-local membershipElapsed = benchmarkMembership(100)
-appendMetric("IsGuildMember (100)", membershipElapsed, iterations)
-local whisperElapsed = benchmarkWhispers()
-appendMetric("OnWhisper", whisperElapsed, iterations)
+appendMetric("IsGuildMember (100)", benchmarkMembership(100), iterations)
+appendMetric("OnWhisper", benchmarkWhispers(), iterations)
 for _, size in ipairs({100, 500, 1000}) do
-    local count = math.max(1, math.floor(iterations / 100))
-    local elapsed = benchmarkRebuild(size)
+    local elapsed, count = benchmarkRebuild(size)
     appendMetric("RebuildGuildMembers (" .. size .. ")", elapsed, count)
 end
 
