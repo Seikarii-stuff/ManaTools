@@ -119,15 +119,70 @@ mock.fireEvent("ADDON_LOADED", "Blizzard_BonusRoll")
 assertEqual(mock.secureHookCount("BonusRollFrame_StartBonusRoll"), 1, "BonusRoll start hook is not duplicated")
 
 local frame = mock.newBonusRollFrame(true)
+local originalClickCount = 0
+frame.PromptFrame.RollButton:SetScript("OnClick", function()
+    originalClickCount = originalClickCount + 1
+end)
 BonusRollFrame = frame
 mock.setContent("raid", 15, false)
 mock.startBonusRoll()
 assertEqual(#frame.PromptFrame.RollButton.hooks.OnShow, 1, "PromptFrame.RollButton is hooked")
 assertEqual(#frame.PromptFrame.RollButton.hooks.OnEnable, 1, "PromptFrame.RollButton has an enable guard")
+assertEqual(#(frame.PromptFrame.RollButton.hooks.OnClick or {}), 0, "click barrier is implemented by wrapping OnClick before the original script")
 assertEqual(#(frame.RollButton.hooks.OnShow or {}), 0, "fallback RollButton is not selected when PromptFrame button exists")
 assertFalse(frame.PromptFrame.RollButton.enabled, "PromptFrame button is blocked")
 assertEqual(frame.PromptFrame.RollButton.alpha, 0.4, "blocked PromptFrame button alpha")
 assertEqual(frame.PromptFrame.RollButton.tooltipText, "NoWasteCoin: Bonus Roll disabled here.", "blocked PromptFrame button tooltip")
+
+-- The critical security property: a blocked click never reaches Blizzard's
+-- original OnClick callback, regardless of the button's visual enabled state.
+frame.PromptFrame.RollButton:TriggerScript("OnClick")
+assertEqual(originalClickCount, 0, "Open/blocked content click does not execute original callback")
+mock.setContent("raid", 14, false)
+frame.PromptFrame.RollButton:TriggerScript("OnClick")
+assertEqual(originalClickCount, 0, "normal raid click does not execute original callback")
+mock.setContent("raid", 15, false)
+db.allowHeroicRaid = false
+frame.PromptFrame.RollButton:TriggerScript("OnClick")
+assertEqual(originalClickCount, 0, "Heroic raid with option disabled does not execute original callback")
+mock.setContent("party", 8, true)
+db.allowMythicPlus = false
+frame.PromptFrame.RollButton:TriggerScript("OnClick")
+assertEqual(originalClickCount, 0, "Mythic+ with option disabled does not execute original callback")
+
+-- Allowed paths execute Blizzard's original callback exactly once.
+mock.setContent("raid", 16, false)
+NoWasteCoin.Update()
+frame.PromptFrame.RollButton:TriggerScript("OnClick")
+assertEqual(originalClickCount, 1, "Mythic raid click executes original callback exactly once")
+
+db.allowHeroicRaid = true
+mock.setContent("raid", 15, false)
+NoWasteCoin.Update()
+frame.PromptFrame.RollButton:TriggerScript("OnClick")
+assertEqual(originalClickCount, 2, "enabled Heroic raid click executes original callback exactly once")
+
+db.allowMythicPlus = true
+mock.setContent("party", 8, true)
+NoWasteCoin.Update()
+frame.PromptFrame.RollButton:TriggerScript("OnClick")
+assertEqual(originalClickCount, 3, "enabled Mythic+ click executes original callback exactly once")
+
+-- Same button, changed content: the click gate must query current content and
+-- must not retain the state captured when the wrapper was installed.
+mock.setContent("raid", 16, false)
+NoWasteCoin.Update()
+frame.PromptFrame.RollButton:TriggerScript("OnClick")
+assertEqual(originalClickCount, 4, "same button remains allowed in Mythic raid")
+mock.setWorld()
+NoWasteCoin.Update()
+frame.PromptFrame.RollButton:TriggerScript("OnClick")
+assertEqual(originalClickCount, 4, "same button blocks after changing to open world")
+mock.setContent("raid", 16, false)
+NoWasteCoin.Update()
+frame.PromptFrame.RollButton:TriggerScript("OnClick")
+assertEqual(originalClickCount, 5, "same button allows again after returning to Mythic raid")
+
 mock.startBonusRoll()
 assertEqual(#frame.PromptFrame.RollButton.hooks.OnShow, 1, "same button receives one OnShow hook")
 assertEqual(#frame.PromptFrame.RollButton.hooks.OnEnable, 1, "same button receives one OnEnable hook")
