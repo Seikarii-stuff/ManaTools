@@ -12,9 +12,22 @@ local function OpenManaToolsSettings()
     end
 end
 
-SLASH_MANATOOLS1 = "/mana"
-SlashCmdList.MANATOOLS = function()
+local function HandleManaCommand(message)
+    local command = strlower(strtrim(message or ""))
+
+    if command == "coin" then
+        if ManaTools.NoWasteCoin.EnableCurrentRollOverride() then
+            print("ManaTools: Bonus Roll desbloqueada para esta tirada.")
+        else
+            print("ManaTools: No hay ninguna Bonus Roll activa.")
+        end
+        return
+    end
+
     OpenManaToolsSettings()
 end
+
+SLASH_MANATOOLS1 = "/mana"
+SlashCmdList.MANATOOLS = HandleManaCommand
 
 ManaTools.OpenSettings = OpenManaToolsSettings

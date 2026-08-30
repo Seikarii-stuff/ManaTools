@@ -14,6 +14,8 @@ local hookedButton
 local visualHookedButton
 local wrappedOnClicks = setmetatable({}, { __mode = "k" })
 local bonusRollStartHooked = false
+local currentRollOverride = false
+local currentRollFrame
 
 local function IsAllowedContent()
     local inInstance, instanceType = IsInInstance()
@@ -38,6 +40,15 @@ local function IsAllowedContent()
     return false
 end
 
+local function IsCurrentRollOverrideActive()
+    return currentRollOverride and currentRollFrame == BonusRollFrame and BonusRollFrame ~= nil
+end
+
+local function ClearCurrentRollOverride()
+    currentRollOverride = false
+    currentRollFrame = nil
+end
+
 local function GetRollButton()
     if not BonusRollFrame then
         return nil
@@ -47,13 +58,25 @@ local function GetRollButton()
         or BonusRollFrame.RollButton
 end
 
+local function IsBonusRollFrameActive()
+    if not BonusRollFrame then
+        return false
+    end
+
+    if BonusRollFrame.IsShown then
+        return BonusRollFrame:IsShown()
+    end
+
+    return true
+end
+
 local function UpdateRollButton()
     local button = GetRollButton()
     if not button then
         return
     end
 
-    local allowed = IsAllowedContent()
+    local allowed = IsCurrentRollOverrideActive() or IsAllowedContent()
 
     if allowed then
         button:Enable()
@@ -77,8 +100,17 @@ local function HookRollButton(button)
     if currentOnClick ~= wrappedOnClick then
         local originalOnClick = currentOnClick
         wrappedOnClick = function(self, ...)
-            -- This is the actual spending barrier. Visual state is deliberately
-            -- not trusted because Blizzard can change it during the lifecycle.
+            -- This remains the actual spending barrier. The temporary override
+            -- only replaces the content decision for the currently open roll.
+            if IsCurrentRollOverrideActive() then
+                ClearCurrentRollOverride()
+                UpdateRollButton()
+                if originalOnClick then
+                    return originalOnClick(self, ...)
+                end
+                return
+            end
+
             if not IsAllowedContent() then
                 return
             end
@@ -103,7 +135,15 @@ local function HookBonusRollUI()
 
     if hookedFrame ~= BonusRollFrame then
         hookedFrame = BonusRollFrame
-        BonusRollFrame:HookScript("OnShow", UpdateRollButton)
+        BonusRollFrame:HookScript("OnShow", function()
+            HookBonusRollUI()
+        end)
+        BonusRollFrame:HookScript("OnHide", function(self)
+            if currentRollFrame == self then
+                ClearCurrentRollOverride()
+            end
+            UpdateRollButton()
+        end)
     end
 
     HookRollButton(button)
@@ -112,7 +152,7 @@ local function HookBonusRollUI()
         visualHookedButton = button
         button:HookScript("OnShow", UpdateRollButton)
         button:HookScript("OnEnable", function(self)
-            if not IsAllowedContent() then
+            if not IsCurrentRollOverrideActive() and not IsAllowedContent() then
                 self:Disable()
                 self:SetAlpha(0.4)
                 self.tooltipText = "NoWasteCoin: Bonus Roll disabled here."
@@ -129,7 +169,10 @@ local function InstallBonusRollStartHook()
         return false
     end
 
-    hooksecurefunc("BonusRollFrame_StartBonusRoll", HookBonusRollUI)
+    hooksecurefunc("BonusRollFrame_StartBonusRoll", function(...)
+        ClearCurrentRollOverride()
+        HookBonusRollUI(...)
+    end)
     bonusRollStartHooked = true
     return true
 end
@@ -145,6 +188,23 @@ end
 
 function NoWasteCoin.Update()
     return UpdateRollButton()
+end
+
+function NoWasteCoin.EnableCurrentRollOverride()
+    if not IsBonusRollFrameActive() then
+        return false
+    end
+
+    currentRollFrame = BonusRollFrame
+    currentRollOverride = true
+    HookBonusRollUI()
+    UpdateRollButton()
+    return true
+end
+
+function NoWasteCoin.ClearCurrentRollOverride()
+    ClearCurrentRollOverride()
+    UpdateRollButton()
 end
 
 local eventFrame = CreateFrame("Frame")
