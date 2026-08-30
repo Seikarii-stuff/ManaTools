@@ -7,7 +7,6 @@ end
 
 local ManaInvite = ManaTools.ManaInvite or {}
 ManaTools.ManaInvite = ManaInvite
-
 ManaInvite.guildMembers = ManaInvite.guildMembers or {}
 
 local function NormalizePlayerName(name)
@@ -50,24 +49,20 @@ function ManaInvite:OnWhisper(message, sender)
     InviteUnit(sender)
 end
 
-function ManaInvite:UpdateEvents()
-    local shouldListen = db.enabled == true
+local eventFrame = CreateFrame("Frame")
 
-    if shouldListen then
+function ManaInvite:UpdateEvents()
+    if db.enabled == true then
         eventFrame:RegisterEvent("CHAT_MSG_WHISPER")
     else
         eventFrame:UnregisterEvent("CHAT_MSG_WHISPER")
     end
 end
 
-local eventFrame = CreateFrame("Frame")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
     if event == "GUILD_ROSTER_UPDATE" then
         RebuildGuildMembers()
-        return
-    end
-
-    if event == "CHAT_MSG_WHISPER" then
+    elseif event == "CHAT_MSG_WHISPER" then
         ManaInvite:OnWhisper(...)
     end
 end)
@@ -77,7 +72,6 @@ ManaInvite.NormalizePlayerName = NormalizePlayerName
 ManaInvite.IsGuildMember = IsGuildMember
 ManaInvite.RebuildGuildMembers = RebuildGuildMembers
 
--- Keep the roster cache warm independently of whisper processing.
 eventFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
 RebuildGuildMembers()
 ManaInvite:UpdateEvents()
