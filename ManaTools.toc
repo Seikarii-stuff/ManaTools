@@ -6,7 +6,7 @@
 ## IconTexture: 134400
 ## SavedVariables: NoWasteCoinDB
 
-ManaTools.lua
+Bootstrap.lua
 Options.lua
 SlashCmd.lua
 NoWasteCoin\NoWasteCoin.lua
