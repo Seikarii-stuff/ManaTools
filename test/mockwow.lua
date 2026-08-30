@@ -78,7 +78,13 @@ function MockWoW.reset(db)
         MockWoW.secureHooks[name] = MockWoW.secureHooks[name] or {}
         table.insert(MockWoW.secureHooks[name], callback)
     end
-    CreateFrame = function() return newFrame() end
+    CreateFrame = function(_, _, _, template)
+        local frame = newFrame()
+        if template == "InterfaceOptionsCheckButtonTemplate" then
+            frame.Text = newFrame()
+        end
+        return frame
+    end
     BonusRollFrame = nil
     BonusRollFrame_StartBonusRoll = nil
 end
