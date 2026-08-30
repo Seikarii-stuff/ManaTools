@@ -5,7 +5,8 @@
 local mock = assert(loadfile("test/mockwow.lua"))()
 
 local source = assert(io.open("NoWasteCoin/NoWasteCoin.lua", "r")):read("*a")
-local chunk = assert(load(source, "NoWasteCoin.lua"))
+local loader = loadstring or load
+local chunk = assert(loader(source, "NoWasteCoin.lua"))
 chunk("NoWasteCoin")
 
 local function assertEqual(actual, expected, name)
