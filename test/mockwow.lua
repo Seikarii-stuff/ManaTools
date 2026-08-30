@@ -1,56 +1,54 @@
--- Minimal WoW API mock used by the ManaTools tests.
+-- Minimal stateful WoW API mock used by the ManaTools test suite.
 
-IsInInstance = function()
-    return false, nil
-end
+local MockWoW = {}
 
-GetInstanceInfo = function()
-    return "Mock Instance", "none", 0
-end
+function MockWoW.reset()
+    NoWasteCoinDB = { allowHeroicRaid = false, allowMythicPlus = false }
+    MockWoW.inInstance = false
+    MockWoW.instanceType = nil
+    MockWoW.difficultyID = 0
+    MockWoW.challengeActive = false
 
-C_ChallengeMode = {
-    IsChallengeModeActive = function()
-        return false
-    end,
-}
-
-C_Timer = {
-    After = function(_, fn)
-        if fn then fn() end
-    end,
-}
-
-CreateFrame = function()
-    local frame = {
-        RegisterEvent = function() end,
-        SetScript = function() end,
-        HookScript = function() end,
-        SetPoint = function() end,
-        SetText = function() end,
-        SetJustifyH = function() end,
-        SetChecked = function() end,
+    IsInInstance = function() return MockWoW.inInstance, MockWoW.instanceType end
+    GetInstanceInfo = function() return "Mock Instance", MockWoW.instanceType or "none", MockWoW.difficultyID end
+    C_ChallengeMode = { IsChallengeModeActive = function() return MockWoW.challengeActive end }
+    C_Timer = { After = function(_, callback) if callback then callback() end end }
+    SlashCmdList = {}
+    Settings = {
+        RegisterCanvasLayoutCategory = function(_, name) return { GetID = function() return 1 end, name = name } end,
+        RegisterAddOnCategory = function() end,
+        OpenToCategory = function() end,
     }
-    frame.CreateFontString = function()
-        return {
-            SetPoint = function() end,
-            SetText = function() end,
-            SetJustifyH = function() end,
+    InterfaceOptions_AddCategory = function() end
+    InterfaceOptionsFrame_OpenToCategory = function() end
+
+    CreateFrame = function()
+        local frame = {
+            RegisterEvent = function() end, SetScript = function() end, HookScript = function() end,
+            SetPoint = function() end, SetText = function() end, SetJustifyH = function() end,
+            SetChecked = function() end, Enable = function() end, Disable = function() end, SetAlpha = function() end,
         }
+        frame.CreateFontString = function()
+            return { SetPoint = function() end, SetText = function() end, SetJustifyH = function() end }
+        end
+        return frame
     end
-    return frame
+    BonusRollFrame = nil
 end
 
-Settings = {
-    RegisterCanvasLayoutCategory = function(_, name)
-        return { GetID = function() return 1 end, name = name }
-    end,
-    RegisterAddOnCategory = function() end,
-    OpenToCategory = function() end,
-}
+function MockWoW.setContent(instanceType, difficultyID, challengeActive)
+    MockWoW.inInstance = true
+    MockWoW.instanceType = instanceType
+    MockWoW.difficultyID = difficultyID
+    MockWoW.challengeActive = challengeActive == true
+end
 
-InterfaceOptions_AddCategory = function() end
-InterfaceOptionsFrame_OpenToCategory = function() end
+function MockWoW.setWorld()
+    MockWoW.inInstance = false
+    MockWoW.instanceType = nil
+    MockWoW.difficultyID = 0
+    MockWoW.challengeActive = false
+end
 
-SlashCmdList = {}
-BonusRollFrame = nil
-NoWasteCoinDB = {}
+MockWoW.reset()
+return MockWoW
