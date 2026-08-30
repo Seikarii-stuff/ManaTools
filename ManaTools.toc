@@ -3,7 +3,7 @@
 ## Notes: Avoids wasting coin.
 ## Author: Seikarii
 ## Version: 1.1.0
-## IconTexture: 134400
+## IconTexture: 136159
 ## SavedVariables: NoWasteCoinDB
 
 Bootstrap.lua
