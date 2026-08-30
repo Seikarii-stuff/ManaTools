@@ -1,6 +1,8 @@
 local ADDON_NAME, ManaTools = ...
 
 local db = ManaTools.DB.NoWasteCoin
+local manaInviteDB = ManaTools.DB.ManaInvite
+
 local function Refresh()
     ManaTools.NoWasteCoin.Update()
 end
@@ -37,9 +39,22 @@ mythicPlus:SetScript("OnClick", function(self)
     Refresh()
 end)
 
+local inviteTitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+inviteTitle:SetPoint("TOPLEFT", mythicPlus, "BOTTOMLEFT", 0, -18)
+inviteTitle:SetText("Mana Invite")
+
+local invite = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+invite:SetPoint("TOPLEFT", inviteTitle, "BOTTOMLEFT", 0, -8)
+invite.Text:SetText("Automatically invite guild members who whisper \"mana\"")
+invite:SetScript("OnClick", function(self)
+    manaInviteDB.enabled = self:GetChecked() == true
+    ManaTools.ManaInvite.UpdateEvents()
+end)
+
 panel:SetScript("OnShow", function()
     heroic:SetChecked(db.allowHeroicRaid)
     mythicPlus:SetChecked(db.allowMythicPlus)
+    invite:SetChecked(manaInviteDB.enabled)
 end)
 
 if Settings and Settings.RegisterCanvasLayoutCategory then
