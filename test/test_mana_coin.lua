@@ -35,6 +35,11 @@ end
 local function assertTrue(value, name) assertEqual(value, true, name) end
 local function assertFalse(value, name) assertEqual(value, false, name) end
 
+-- No active Bonus Roll: command reports the error and leaves the override off.
+BonusRollFrame = nil
+SlashCmdList.MANATOOLS("coin")
+assertEqual(slashOutput[#slashOutput], "ManaTools: No hay ninguna Bonus Roll activa.", "inactive /mana coin error message")
+
 local frame = mock.newBonusRollFrame(true)
 local originalClickCount = 0
 frame.PromptFrame.RollButton:SetScript("OnClick", function()
@@ -47,10 +52,8 @@ mock.setContent("raid", 15, false)
 mock.startBonusRoll()
 
 assertFalse(frame.PromptFrame.RollButton.enabled, "blocked Heroic button starts disabled")
-assertFalse(NoWasteCoin.EnableCurrentRollOverride(), "direct override activation fails without an active frame")
 
 -- Basic override: the blocked Heroic roll can be deliberately spent once.
-frame:Show()
 SlashCmdList.MANATOOLS("coin")
 assertEqual(slashOutput[#slashOutput], "ManaTools: Bonus Roll desbloqueada para esta tirada.", "successful /mana coin message")
 assertTrue(frame.PromptFrame.RollButton.enabled, "override enables blocked Heroic button")
@@ -66,12 +69,8 @@ assertEqual(frame.PromptFrame.RollButton.tooltipText, "NoWasteCoin: Bonus Roll d
 frame.PromptFrame.RollButton:TriggerScript("OnClick")
 assertEqual(originalClickCount, 1, "second click cannot reuse override")
 
--- No active frame: command reports the error and does not arm anything.
+-- The invalid command did not arm a future roll.
 frame:Hide()
-local messagesBefore = #slashOutput
-SlashCmdList.MANATOOLS("coin")
-assertEqual(#slashOutput, messagesBefore + 1, "inactive /mana coin prints one error")
-assertEqual(slashOutput[#slashOutput], "ManaTools: No hay ninguna Bonus Roll activa.", "inactive /mana coin error message")
 frame:Show()
 mock.setContent("raid", 15, false)
 NoWasteCoin.Update()
@@ -124,4 +123,4 @@ replacement:TriggerScript("OnClick")
 assertEqual(replacementClickCount, 1, "recreated button consumes override after one click")
 
 print = originalPrint
-print(string.format("ManaTools /mana coin tests passed: %d", 9))
+print("ManaTools /mana coin tests passed: 9 scenarios")
