@@ -1,9 +1,6 @@
 local ADDON_NAME, ManaTools = ...
 
-local db = NoWasteCoinDB or ManaTools.DB.NoWasteCoin or {}
-ManaTools.DB.NoWasteCoin = db
-NoWasteCoinDB = db
-
+local db = ManaTools.DB.NoWasteCoin
 if db.allowHeroicRaid == nil then
     db.allowHeroicRaid = false
 end
