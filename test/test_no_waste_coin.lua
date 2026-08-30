@@ -13,9 +13,10 @@ end
 
 -- Bootstrap must own the relationship between the SavedVariables global and the addon namespace.
 ManaToolsDB = nil
-loadFile("Bootstrap.lua", "ManaTools", {})
+ManaTools = {}
+loadFile("Bootstrap.lua", "ManaTools", ManaTools)
 assert(ManaTools.DB == ManaToolsDB, "ManaTools.DB must reference ManaToolsDB")
-loadFile("NoWasteCoin/NoWasteCoin.lua", "ManaTools", {})
+loadFile("NoWasteCoin/NoWasteCoin.lua", "ManaTools", ManaTools)
 
 local db = ManaTools.DB.NoWasteCoin
 local NoWasteCoin = ManaTools.NoWasteCoin
@@ -76,7 +77,7 @@ assertTrue(db.allowMythicPlus, "existing Mythic+ value preserved")
 
 -- Re-running Bootstrap must not replace the DB or reset settings.
 local existingDB = ManaToolsDB
-loadFile("Bootstrap.lua", "ManaTools", {})
+loadFile("Bootstrap.lua", "ManaTools", ManaTools)
 assertTrue(ManaTools.DB == existingDB, "Bootstrap preserves existing DB table")
 assertTrue(ManaTools.DB.NoWasteCoin.allowHeroicRaid, "Bootstrap preserves heroic setting")
 assertTrue(ManaTools.DB.NoWasteCoin.allowMythicPlus, "Bootstrap preserves Mythic+ setting")
@@ -115,6 +116,8 @@ test("Unknown instance type blocked", "arena", 16, false, true, true, false)
 -- Configuration branches are independent.
 db.allowHeroicRaid = true
 db.allowMythicPlus = false
+assertTrue(NoWasteCoin.IsAllowedContent() == false, "heroic branch is not an unrelated content switch")
+mock.setContent("raid", 15, false)
 assertTrue(NoWasteCoin.IsAllowedContent(), "heroic setting enables heroic raid")
 mock.setContent("party", 8, true)
 assertFalse(NoWasteCoin.IsAllowedContent(), "heroic setting does not enable Mythic+")
