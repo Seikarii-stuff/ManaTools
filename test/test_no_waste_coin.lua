@@ -134,8 +134,6 @@ assertFalse(frame.PromptFrame.RollButton.enabled, "PromptFrame button is blocked
 assertEqual(frame.PromptFrame.RollButton.alpha, 0.4, "blocked PromptFrame button alpha")
 assertEqual(frame.PromptFrame.RollButton.tooltipText, "NoWasteCoin: Bonus Roll disabled here.", "blocked PromptFrame button tooltip")
 
--- The critical security property: a blocked click never reaches Blizzard's
--- original OnClick callback, regardless of the button's visual enabled state.
 frame.PromptFrame.RollButton:TriggerScript("OnClick")
 assertEqual(originalClickCount, 0, "Open/blocked content click does not execute original callback")
 mock.setContent("raid", 14, false)
@@ -150,7 +148,6 @@ db.allowMythicPlus = false
 frame.PromptFrame.RollButton:TriggerScript("OnClick")
 assertEqual(originalClickCount, 0, "Mythic+ with option disabled does not execute original callback")
 
--- Allowed paths execute Blizzard's original callback exactly once.
 mock.setContent("raid", 16, false)
 NoWasteCoin.Update()
 frame.PromptFrame.RollButton:TriggerScript("OnClick")
@@ -168,8 +165,6 @@ NoWasteCoin.Update()
 frame.PromptFrame.RollButton:TriggerScript("OnClick")
 assertEqual(originalClickCount, 3, "enabled Mythic+ click executes original callback exactly once")
 
--- Same button, changed content: the click gate must query current content and
--- must not retain the state captured when the wrapper was installed.
 mock.setContent("raid", 16, false)
 NoWasteCoin.Update()
 frame.PromptFrame.RollButton:TriggerScript("OnClick")
@@ -233,7 +228,7 @@ BonusRollFrame = fallbackFrame
 mock.setContent("raid", 16, false)
 mock.startBonusRoll()
 assertEqual(#fallbackFrame.RollButton.hooks.OnShow, 1, "fallback RollButton is hooked")
-assertEqual(#fallbackFrame.RollButton.hooks.OnEnable, 1, "fallback RollButton has an enable guard")
+assertEqual(#fallbackFrame.RollButton.hooks.OnEnable, 1, "fallback RollButton has enable guard")
 assertTrue(fallbackFrame.RollButton.enabled, "fallback RollButton follows allowed content")
 
 local lateFrame = mock.newBonusRollFrame(false)
@@ -244,14 +239,16 @@ lateFrame.PromptFrame = mock.newBonusRollFrame(false)
 mock.setContent("raid", 16, false)
 mock.startBonusRoll()
 assertEqual(#lateFrame.PromptFrame.RollButton.hooks.OnShow, 1, "late-created known button is hooked")
-assertEqual(#lateFrame.PromptFrame.RollButton.hooks.OnEnable, 1, "late-created known button has an enable guard")
+assertEqual(#lateFrame.PromptFrame.RollButton.hooks.OnEnable, 1, "late-created known button has enable guard")
 
 BonusRollFrame = fallbackFrame
 mock.setContent("raid", 15, false)
 db.allowHeroicRaid = false
+local framesBeforeOptions = #mock.createdFrames
 loadFile("Options.lua", "ManaTools", ManaTools)
 local clickFrames = {}
-for _, created in ipairs(mock.createdFrames) do
+for i = framesBeforeOptions + 1, #mock.createdFrames do
+    local created = mock.createdFrames[i]
     if created.scripts and created.scripts.OnClick then
         table.insert(clickFrames, created)
     end
