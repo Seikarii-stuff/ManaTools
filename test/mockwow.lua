@@ -4,6 +4,7 @@ local MockWoW = { events = {} }
 
 local function newFrame()
     local frame = { hooks = {}, enabled = true, alpha = 1, tooltipText = nil, registeredEvents = {} }
+    table.insert(MockWoW.createdFrames, frame)
 
     function frame:RegisterEvent(event)
         if self.registeredEvents[event] then return end
@@ -29,11 +30,14 @@ local function newFrame()
         for _, hook in ipairs(self.hooks[script] or {}) do hook(self, ...) end
     end
     function frame:SetPoint() end
-    function frame:SetText() end
+    function frame:SetText(value) self.text = value end
     function frame:SetJustifyH() end
     function frame:SetChecked(value) self.checked = value end
     function frame:GetChecked() return self.checked end
-    function frame:Enable() self.enabled = true end
+    function frame:Enable()
+        self.enabled = true
+        self:TriggerScript("OnEnable")
+    end
     function frame:Disable() self.enabled = false end
     function frame:SetAlpha(value) self.alpha = value end
     function frame:CreateFontString() return newFrame() end
@@ -43,6 +47,8 @@ end
 function MockWoW.reset(db)
     ManaToolsDB = db or {}
     MockWoW.events = {}
+    MockWoW.createdFrames = {}
+    MockWoW.secureHooks = {}
     MockWoW.inInstance = false
     MockWoW.instanceType = nil
     MockWoW.difficultyID = 0
@@ -68,14 +74,46 @@ function MockWoW.reset(db)
     }
     InterfaceOptions_AddCategory = function() end
     InterfaceOptionsFrame_OpenToCategory = function() end
-    CreateFrame = function() return newFrame() end
+    hooksecurefunc = function(name, callback)
+        MockWoW.secureHooks[name] = MockWoW.secureHooks[name] or {}
+        table.insert(MockWoW.secureHooks[name], callback)
+    end
+    CreateFrame = function(_, _, _, template)
+        local frame = newFrame()
+        if template == "InterfaceOptionsCheckButtonTemplate" then
+            frame.Text = newFrame()
+        end
+        return frame
+    end
     BonusRollFrame = nil
+    BonusRollFrame_StartBonusRoll = nil
 end
 
-function MockWoW.newBonusRollFrame()
+function MockWoW.newBonusRollFrame(usePromptButton)
     local frame = newFrame()
     frame.RollButton = newFrame()
+    if usePromptButton then
+        frame.PromptFrame = newFrame()
+        frame.PromptFrame.RollButton = newFrame()
+    end
     return frame
+end
+
+function MockWoW.startBonusRoll(...)
+    local hooks = MockWoW.secureHooks.BonusRollFrame_StartBonusRoll or {}
+    for _, callback in ipairs(hooks) do
+        callback(...)
+    end
+end
+
+function MockWoW.defineBonusRollStart()
+    BonusRollFrame_StartBonusRoll = function(...)
+        return ...
+    end
+end
+
+function MockWoW.secureHookCount(name)
+    return #(MockWoW.secureHooks[name] or {})
 end
 
 function MockWoW.setGuildMembers(...) MockWoW.guildMembers = {...} end

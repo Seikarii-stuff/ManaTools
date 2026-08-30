@@ -11,6 +11,7 @@ end
 local NoWasteCoin = ManaTools.NoWasteCoin
 local hookedFrame
 local hookedButton
+local bonusRollStartHooked = false
 
 local function IsAllowedContent()
     local inInstance, instanceType = IsInInstance()
@@ -35,13 +36,22 @@ local function IsAllowedContent()
     return false
 end
 
+local function GetRollButton()
+    if not BonusRollFrame then
+        return nil
+    end
+
+    return (BonusRollFrame.PromptFrame and BonusRollFrame.PromptFrame.RollButton)
+        or BonusRollFrame.RollButton
+end
+
 local function UpdateRollButton()
-    if not BonusRollFrame or not BonusRollFrame.RollButton then
+    local button = GetRollButton()
+    if not button then
         return
     end
 
     local allowed = IsAllowedContent()
-    local button = BonusRollFrame.RollButton
 
     if allowed then
         button:Enable()
@@ -55,7 +65,8 @@ local function UpdateRollButton()
 end
 
 local function HookBonusRollUI()
-    if not BonusRollFrame or not BonusRollFrame.RollButton then
+    local button = GetRollButton()
+    if not button then
         return false
     end
 
@@ -64,16 +75,34 @@ local function HookBonusRollUI()
         BonusRollFrame:HookScript("OnShow", UpdateRollButton)
     end
 
-    if hookedButton ~= BonusRollFrame.RollButton then
-        hookedButton = BonusRollFrame.RollButton
-        BonusRollFrame.RollButton:HookScript("OnShow", UpdateRollButton)
+    if hookedButton ~= button then
+        hookedButton = button
+        button:HookScript("OnShow", UpdateRollButton)
+        button:HookScript("OnEnable", function()
+            if not IsAllowedContent() then
+                button:Disable()
+                button:SetAlpha(0.4)
+                button.tooltipText = "NoWasteCoin: Bonus Roll disabled here."
+            end
+        end)
     end
 
     UpdateRollButton()
     return true
 end
 
+local function InstallBonusRollStartHook()
+    if bonusRollStartHooked or not BonusRollFrame_StartBonusRoll or not hooksecurefunc then
+        return false
+    end
+
+    hooksecurefunc("BonusRollFrame_StartBonusRoll", HookBonusRollUI)
+    bonusRollStartHooked = true
+    return true
+end
+
 function NoWasteCoin.Initialize()
+    InstallBonusRollStartHook()
     return HookBonusRollUI()
 end
 
@@ -93,6 +122,8 @@ eventFrame:SetScript("OnEvent", function(_, event, addonName)
     if event == "ADDON_LOADED" and addonName ~= "Blizzard_BonusRoll" then
         return
     end
+
+    InstallBonusRollStartHook()
     HookBonusRollUI()
 end)
 
