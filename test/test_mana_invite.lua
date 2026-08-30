@@ -21,16 +21,18 @@ local function loadAddon(db)
     return namespace, namespace.ManaInvite
 end
 
--- Central DB and defaults.
 local existingDB = { ManaInvite = { enabled = true } }
 local ManaTools, ManaInvite = loadAddon(existingDB)
 assert(ManaTools.DB == ManaToolsDB, "ManaTools.DB points at central DB")
 assert(ManaTools.DB.ManaInvite == existingDB.ManaInvite, "existing ManaInvite branch preserved")
 assert(ManaTools.DB.ManaInvite.enabled == true, "existing enabled setting preserved")
+assert(ManaTools.ManaInvite == ManaInvite, "feature namespace exposed")
+assert(ManaTools.ManaInviteDB == nil, "legacy ManaInviteDB global is absent")
 
 ManaTools, ManaInvite = loadAddon({})
 assert(ManaTools.DB.ManaInvite ~= nil, "ManaInvite DB branch exists")
 assert(ManaTools.DB.ManaInvite.enabled == false, "ManaInvite defaults to disabled")
+assert(ManaTools.ManaInviteDB == nil, "legacy ManaInviteDB is absent")
 
 local db = ManaTools.DB.ManaInvite
 local bootstrapDB = ManaToolsDB
@@ -75,7 +77,6 @@ assert(ManaInvite.IsGuildMember("Fresh-Realm"), "new guild member cached")
 assert(ManaInvite.IsGuildMember("Second-Realm"), "second guild member cached")
 assert(not ManaInvite.IsGuildMember("B-Realm"), "stale guild member removed")
 
--- Exact trigger variants.
 local accepted = { "mana", "Mana", "MANA", "MaNa", " mana " }
 for _, message in ipairs(accepted) do
     mock.clearInvites()
@@ -95,7 +96,6 @@ mock.clearInvites()
 mock.fireEvent("CHAT_MSG_WHISPER", "mana", "NotGuild-Realm")
 assert(#mock.invites == 0, "non-guild member is never invited")
 
--- ON -> OFF unregisters both events and remains idempotent.
 db.enabled = false
 ManaInvite:UpdateEvents()
 ManaInvite:UpdateEvents()
