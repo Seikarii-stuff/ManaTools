@@ -1,8 +1,12 @@
 local ADDON_NAME = ...
 
 NoWasteCoinDB = NoWasteCoinDB or {}
-NoWasteCoinDB.allowHeroicRaid = NoWasteCoinDB.allowHeroicRaid or false
-NoWasteCoinDB.allowMythicPlus = NoWasteCoinDB.allowMythicPlus or false
+if NoWasteCoinDB.allowHeroicRaid == nil then
+    NoWasteCoinDB.allowHeroicRaid = false
+end
+if NoWasteCoinDB.allowMythicPlus == nil then
+    NoWasteCoinDB.allowMythicPlus = false
+end
 
 local function IsAllowedContent()
     local inInstance, instanceType = IsInInstance()
@@ -12,21 +16,22 @@ local function IsAllowedContent()
 
     local _, _, difficultyID = GetInstanceInfo()
 
-    -- Mythic raid is always allowed.
+    -- Only Mythic raid is enabled by default.
     if instanceType == "raid" and difficultyID == 16 then
         return true
     end
 
-    -- Heroic raid is optional.
+    -- Heroic raid is an explicit exception controlled by the setting.
     if instanceType == "raid" and difficultyID == 15 then
-        return NoWasteCoinDB.allowHeroicRaid
+        return NoWasteCoinDB.allowHeroicRaid == true
     end
 
-    -- Mythic+ is optional.
+    -- Mythic+ is an explicit exception controlled by the setting.
     if instanceType == "party" and C_ChallengeMode and C_ChallengeMode.IsChallengeModeActive then
-        return NoWasteCoinDB.allowMythicPlus and C_ChallengeMode.IsChallengeModeActive()
+        return NoWasteCoinDB.allowMythicPlus == true and C_ChallengeMode.IsChallengeModeActive()
     end
 
+    -- Normal raid, Mythic 0, Delves, dungeons and every other content remain blocked.
     return false
 end
 
@@ -56,7 +61,6 @@ local function HookBonusRollUI()
 
     if not BonusRollFrame.NoWasteCoinHooked then
         BonusRollFrame.NoWasteCoinHooked = true
-
         BonusRollFrame:HookScript("OnShow", UpdateRollButton)
         BonusRollFrame.RollButton:HookScript("OnShow", UpdateRollButton)
     end
@@ -71,6 +75,7 @@ eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 eventFrame:RegisterEvent("ZONE_CHANGED")
 eventFrame:RegisterEvent("ZONE_CHANGED_INDOORS")
+eventFrame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 
 eventFrame:SetScript("OnEvent", function()
     HookBonusRollUI()
