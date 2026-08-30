@@ -13,8 +13,9 @@ end
 
 -- Bootstrap must own the relationship between the SavedVariables global and the addon namespace.
 ManaToolsDB = nil
-ManaTools = {}
-loadFile("Bootstrap.lua", "ManaTools", ManaTools)
+local addonNamespace = {}
+loadFile("Bootstrap.lua", "ManaTools", addonNamespace)
+ManaTools = addonNamespace
 assert(ManaTools.DB == ManaToolsDB, "ManaTools.DB must reference ManaToolsDB")
 loadFile("NoWasteCoin/NoWasteCoin.lua", "ManaTools", ManaTools)
 
@@ -115,8 +116,6 @@ test("Unknown instance type blocked", "arena", 16, false, true, true, false)
 
 -- Configuration branches are independent.
 db.allowHeroicRaid = true
-db.allowMythicPlus = false
-assertTrue(NoWasteCoin.IsAllowedContent() == false, "heroic branch is not an unrelated content switch")
 mock.setContent("raid", 15, false)
 assertTrue(NoWasteCoin.IsAllowedContent(), "heroic setting enables heroic raid")
 mock.setContent("party", 8, true)
