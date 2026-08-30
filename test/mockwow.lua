@@ -102,7 +102,7 @@ end
 
 function MockWoW.defineBonusRollStart()
     BonusRollFrame_StartBonusRoll = function(...)
-        MockWoW.startBonusRoll(...)
+        return ...
     end
 end
 
