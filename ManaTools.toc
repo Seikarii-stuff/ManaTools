@@ -3,9 +3,10 @@
 ## Notes: Avoids wasting coin.
 ## Author: Seikarii
 ## Version: 1.1.0
-## IconTexture: Interface\Icons\spell_nature_manaburn
+## IconTexture: 134400
 ## SavedVariables: NoWasteCoinDB
 
 ManaTools.lua
 Options.lua
+SlashCmd.lua
 NoWasteCoin\NoWasteCoin.lua
