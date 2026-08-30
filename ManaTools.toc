@@ -1,0 +1,10 @@
+## Interface: 120100
+## Title: ManaTools
+## Notes: Utility suite for World of Warcraft Retail.
+## Author: Seikarii
+## Version: 1.0.0
+## SavedVariables: NoWasteCoinDB
+
+ManaTools.lua
+Options.lua
+NoWasteCoin\NoWasteCoin.lua
