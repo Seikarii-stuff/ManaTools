@@ -190,7 +190,7 @@ function NoWasteCoin.EnableCurrentRollOverride()
     return true
 end
 
-eventFrame = CreateFrame("Frame")
+local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 eventFrame:RegisterEvent("ADDON_LOADED")
