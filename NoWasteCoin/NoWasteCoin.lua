@@ -15,6 +15,7 @@ local visualHookedButton
 local wrappedOnClicks = setmetatable({}, { __mode = "k" })
 local bonusRollStartHooked = false
 local currentRollOverride = false
+local currentRollFrame
 
 local function IsAllowedContent()
     local inInstance, instanceType = IsInInstance()
@@ -37,6 +38,15 @@ local function IsAllowedContent()
     end
 
     return false
+end
+
+local function IsCurrentRollOverrideActive()
+    return currentRollOverride and currentRollFrame == BonusRollFrame and BonusRollFrame ~= nil
+end
+
+local function ClearCurrentRollOverride()
+    currentRollOverride = false
+    currentRollFrame = nil
 end
 
 local function GetRollButton()
@@ -66,7 +76,7 @@ local function UpdateRollButton()
         return
     end
 
-    local allowed = currentRollOverride or IsAllowedContent()
+    local allowed = IsCurrentRollOverrideActive() or IsAllowedContent()
 
     if allowed then
         button:Enable()
@@ -77,11 +87,6 @@ local function UpdateRollButton()
         button:SetAlpha(0.4)
         button.tooltipText = "NoWasteCoin: Bonus Roll disabled here."
     end
-end
-
-local function ClearCurrentRollOverride()
-    currentRollOverride = false
-    UpdateRollButton()
 end
 
 local function HookRollButton(button)
@@ -97,14 +102,13 @@ local function HookRollButton(button)
         wrappedOnClick = function(self, ...)
             -- This remains the actual spending barrier. The temporary override
             -- only replaces the content decision for the currently open roll.
-            if currentRollOverride then
-                currentRollOverride = false
-                local result
-                if originalOnClick then
-                    result = originalOnClick(self, ...)
-                end
+            if IsCurrentRollOverrideActive() then
+                ClearCurrentRollOverride()
                 UpdateRollButton()
-                return result
+                if originalOnClick then
+                    return originalOnClick(self, ...)
+                end
+                return
             end
 
             if not IsAllowedContent() then
@@ -131,8 +135,15 @@ local function HookBonusRollUI()
 
     if hookedFrame ~= BonusRollFrame then
         hookedFrame = BonusRollFrame
-        BonusRollFrame:HookScript("OnShow", UpdateRollButton)
-        BonusRollFrame:HookScript("OnHide", ClearCurrentRollOverride)
+        BonusRollFrame:HookScript("OnShow", function()
+            HookBonusRollUI()
+        end)
+        BonusRollFrame:HookScript("OnHide", function(self)
+            if currentRollFrame == self then
+                ClearCurrentRollOverride()
+            end
+            UpdateRollButton()
+        end)
     end
 
     HookRollButton(button)
@@ -141,7 +152,7 @@ local function HookBonusRollUI()
         visualHookedButton = button
         button:HookScript("OnShow", UpdateRollButton)
         button:HookScript("OnEnable", function(self)
-            if not currentRollOverride and not IsAllowedContent() then
+            if not IsCurrentRollOverrideActive() and not IsAllowedContent() then
                 self:Disable()
                 self:SetAlpha(0.4)
                 self.tooltipText = "NoWasteCoin: Bonus Roll disabled here."
@@ -159,7 +170,7 @@ local function InstallBonusRollStartHook()
     end
 
     hooksecurefunc("BonusRollFrame_StartBonusRoll", function(...)
-        currentRollOverride = false
+        ClearCurrentRollOverride()
         HookBonusRollUI(...)
     end)
     bonusRollStartHooked = true
@@ -184,10 +195,16 @@ function NoWasteCoin.EnableCurrentRollOverride()
         return false
     end
 
+    currentRollFrame = BonusRollFrame
     currentRollOverride = true
     HookBonusRollUI()
     UpdateRollButton()
     return true
+end
+
+function NoWasteCoin.ClearCurrentRollOverride()
+    ClearCurrentRollOverride()
+    UpdateRollButton()
 end
 
 local eventFrame = CreateFrame("Frame")
