@@ -53,10 +53,9 @@ local function newFrame()
     return frame
 end
 
-function MockWoW.reset()
-    NoWasteCoinDB = NoWasteCoinDB or {}
-    NoWasteCoinDB.allowHeroicRaid = false
-    NoWasteCoinDB.allowMythicPlus = false
+function MockWoW.reset(db)
+    ManaToolsDB = db or {}
+    MockWoW.events = {}
     MockWoW.inInstance = false
     MockWoW.instanceType = nil
     MockWoW.difficultyID = 0
@@ -65,7 +64,6 @@ function MockWoW.reset()
     IsInInstance = function() return MockWoW.inInstance, MockWoW.instanceType end
     GetInstanceInfo = function() return "Mock Instance", MockWoW.instanceType or "none", MockWoW.difficultyID end
     C_ChallengeMode = { IsChallengeModeActive = function() return MockWoW.challengeActive end }
-    C_Timer = { After = function(_, callback) if callback then callback() end end }
     SlashCmdList = {}
     Settings = {
         RegisterCanvasLayoutCategory = function(_, name) return { GetID = function() return 1 end, name = name } end,
