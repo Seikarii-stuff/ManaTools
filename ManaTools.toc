@@ -4,7 +4,7 @@
 ## Author: Seikarii
 ## Version: 1.1.0
 ## IconTexture: 136159
-## SavedVariables: NoWasteCoinDB
+## SavedVariables: ManaToolsDB
 
 Bootstrap.lua
 NoWasteCoin\NoWasteCoin.lua
