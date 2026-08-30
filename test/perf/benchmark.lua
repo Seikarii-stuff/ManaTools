@@ -61,12 +61,11 @@ for _, case in ipairs(cases) do
         mock.setWorld()
     end
 
-    local start = os.clock()
     local allowed
     for _ = 1, warmup do
         allowed = NoWasteCoin.IsAllowedContent()
     end
-    start = os.clock()
+    local start = os.clock()
     for _ = 1, iterations do
         allowed = NoWasteCoin.IsAllowedContent()
     end
@@ -85,11 +84,11 @@ local function benchmarkMembership(size)
 
     local target = "Guild" .. size .. "-Realm"
     for _ = 1, warmup do
-        ManaInvite:IsGuildMember(target)
+        ManaInvite.IsGuildMember(target)
     end
     return runTimed(function(count)
         for _ = 1, count do
-            ManaInvite:IsGuildMember(target)
+            ManaInvite.IsGuildMember(target)
         end
     end, iterations)
 end
