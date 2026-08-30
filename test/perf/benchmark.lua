@@ -1,12 +1,14 @@
 -- Basic benchmark for the NoWasteCoin content gate.
+-- Requires Lua 5.1+.
 -- Run from repository root: lua test/perf/benchmark.lua [iterations]
--- Results are always overwritten at test/results/benchmark.txt.
+-- Always overwrites: test/results/benchmark.txt
 
 local iterations = tonumber(arg[1]) or 1000000
 local mock = assert(loadfile("test/mockwow.lua"))()
 
 local source = assert(io.open("NoWasteCoin/NoWasteCoin.lua", "r")):read("*a")
-local chunk = assert(load(source, "NoWasteCoin.lua"))
+local loader = loadstring or load
+local chunk = assert(loader(source, "NoWasteCoin.lua"))
 chunk("NoWasteCoin")
 
 local cases = {
@@ -17,11 +19,13 @@ local cases = {
     { name = "Open world", type = nil, difficulty = 0, challenge = false, heroic = false, mythicPlus = false },
 }
 
-local results = {}
-results[#results + 1] = "ManaTools benchmark results"
-results[#results + 1] = "==========================="
-results[#results + 1] = string.format("Iterations per case: %d", iterations)
-results[#results + 1] = ""
+local results = {
+    "ManaTools benchmark results",
+    "===========================",
+    "Generated: " .. os.date("!%Y-%m-%d %H:%M:%S UTC"),
+    string.format("Iterations per case: %d", iterations),
+    "",
+}
 
 for _, case in ipairs(cases) do
     mock.reset()
@@ -40,9 +44,7 @@ for _, case in ipairs(cases) do
     end
     local elapsed = os.clock() - start
     local rate = elapsed > 0 and iterations / elapsed or math.huge
-    local line = string.format("%-16s %10.6f s  %12.0f calls/s  result=%s", case.name, elapsed, rate, tostring(allowed))
-    results[#results + 1] = line
-    print(line)
+    results[#results + 1] = string.format("%-16s %10.6f s  %12.0f calls/s  result=%s", case.name, elapsed, rate, tostring(allowed))
 end
 
 results[#results + 1] = ""
@@ -52,4 +54,5 @@ local output = assert(io.open("test/results/benchmark.txt", "w"))
 output:write(table.concat(results, "\n"), "\n")
 output:close()
 
+print(table.concat(results, "\n"))
 print("Benchmark results written to test/results/benchmark.txt")
