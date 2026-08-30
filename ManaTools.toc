@@ -8,5 +8,6 @@
 
 Bootstrap.lua
 NoWasteCoin\NoWasteCoin.lua
+ManaInvite\ManaInvite.lua
 Options.lua
 SlashCmd.lua
