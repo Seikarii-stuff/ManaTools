@@ -1,6 +1,6 @@
 ## Interface: 120100
 ## Title: ManaTools
-## Notes: Utility suite for World of Warcraft Retail.
+## Notes: Avoids wasting coin.
 ## Author: Seikarii
 ## Version: 1.0.0
 ## SavedVariables: NoWasteCoinDB
