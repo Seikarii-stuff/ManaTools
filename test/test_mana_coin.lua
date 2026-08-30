@@ -96,6 +96,26 @@ NoWasteCoin.Update()
 frame.PromptFrame.RollButton:TriggerScript("OnClick")
 assertEqual(originalClickCount, 1, "closed-frame override cannot survive close")
 
+-- The override belongs to the current Bonus Roll, not to the content active when /mana coin was used.
+mock.setContent("raid", 15, false)
+NoWasteCoin.Update()
+SlashCmdList.MANATOOLS("coin")
+assertTrue(frame.PromptFrame.RollButton.enabled, "override arms the blocked Heroic roll")
+assertTrue(NoWasteCoin.EnableCurrentRollOverride(), "current roll override remains associated with the active frame")
+
+-- Change content without hiding the frame, starting another roll, or replacing the button.
+mock.setWorld()
+assertFalse(NoWasteCoin.IsAllowedContent(), "new open-world content is normally blocked")
+assertTrue(frame:IsShown(), "same BonusRollFrame remains visible")
+assertTrue(frame.PromptFrame.RollButton.enabled, "override remains visually active after content change")
+
+frame.PromptFrame.RollButton:TriggerScript("OnClick")
+assertEqual(originalClickCount, 2, "content change does not invalidate current-roll override")
+assertFalse(frame.PromptFrame.RollButton.enabled, "content-change override is consumed after click")
+
+frame.PromptFrame.RollButton:TriggerScript("OnClick")
+assertEqual(originalClickCount, 2, "second click cannot reuse content-change override")
+
 -- Mythic remains governed by the existing content rules.
 mock.setContent("raid", 16, false)
 NoWasteCoin.Update()
@@ -103,7 +123,7 @@ assertTrue(frame.PromptFrame.RollButton.enabled, "Mythic remains allowed")
 SlashCmdList.MANATOOLS("coin")
 assertTrue(frame.PromptFrame.RollButton.enabled, "coin command does not break Mythic allowed state")
 frame.PromptFrame.RollButton:TriggerScript("OnClick")
-assertEqual(originalClickCount, 2, "Mythic click still executes original once")
+assertEqual(originalClickCount, 3, "Mythic click still executes original once")
 
 -- Button replacement: /mana coin hooks the currently selected replacement button.
 mock.setContent("raid", 15, false)
@@ -123,4 +143,4 @@ replacement:TriggerScript("OnClick")
 assertEqual(replacementClickCount, 1, "recreated button consumes override after one click")
 
 print = originalPrint
-print("ManaTools /mana coin tests passed: 9 scenarios")
+print("ManaTools /mana coin tests passed: 10 scenarios")
