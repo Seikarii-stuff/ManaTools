@@ -5,12 +5,20 @@
 
 local iterations = tonumber(arg[1]) or 1000000
 local mock = assert(loadfile("test/mockwow.lua"))()
-
-local source = assert(io.open("NoWasteCoin/NoWasteCoin.lua", "r")):read("*a")
 local loader = loadstring or load
-local chunk = assert(loader(source, "NoWasteCoin.lua"))
-local ManaTools = { DB = {}, NoWasteCoin = {} }
-chunk("NoWasteCoin", ManaTools)
+
+local function loadFile(path, ...)
+    local source = assert(io.open(path, "r")):read("*a")
+    local chunk = assert(loader(source, path))
+    chunk(...)
+end
+
+ManaToolsDB = {}
+loadFile("Bootstrap.lua", "ManaTools", {})
+loadFile("NoWasteCoin/NoWasteCoin.lua", "ManaTools", {})
+
+local db = ManaTools.DB.NoWasteCoin
+local NoWasteCoin = ManaTools.NoWasteCoin
 
 local cases = {
     { name = "Mythic raid", type = "raid", difficulty = 16, challenge = false, heroic = false, mythicPlus = false },
@@ -29,9 +37,8 @@ local results = {
 }
 
 for _, case in ipairs(cases) do
-    mock.reset()
-    ManaTools.DB.NoWasteCoin.allowHeroicRaid = case.heroic
-    ManaTools.DB.NoWasteCoin.allowMythicPlus = case.mythicPlus
+    db.allowHeroicRaid = case.heroic
+    db.allowMythicPlus = case.mythicPlus
     if case.type then
         mock.setContent(case.type, case.difficulty, case.challenge)
     else
@@ -41,7 +48,7 @@ for _, case in ipairs(cases) do
     local start = os.clock()
     local allowed
     for _ = 1, iterations do
-        allowed = ManaTools.NoWasteCoin.IsAllowedContent()
+        allowed = NoWasteCoin.IsAllowedContent()
     end
     local elapsed = os.clock() - start
     local rate = elapsed > 0 and iterations / elapsed or math.huge
