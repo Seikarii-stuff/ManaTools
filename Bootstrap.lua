@@ -3,7 +3,8 @@
 local ADDON_NAME, ManaTools = ...
 
 ManaTools = ManaTools or {}
-ManaTools.DB = ManaTools.DB or {}
+ManaToolsDB = ManaToolsDB or {}
+ManaTools.DB = ManaToolsDB
 ManaTools.NoWasteCoin = ManaTools.NoWasteCoin or {}
 ManaTools.ADDON_NAME = ADDON_NAME
 ManaTools.VERSION = "1.1.0"
