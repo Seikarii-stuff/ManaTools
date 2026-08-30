@@ -23,6 +23,7 @@ local function newFrame()
 
     function frame:IsEventRegistered(event) return self.registeredEvents[event] == true end
     function frame:SetScript(script, callback) self.scripts = self.scripts or {}; self.scripts[script] = callback end
+    function frame:GetScript(script) return self.scripts and self.scripts[script] end
     function frame:HookScript(script, callback) self.hooks[script] = self.hooks[script] or {}; table.insert(self.hooks[script], callback) end
     function frame:TriggerScript(script, ...)
         local callback = self.scripts and self.scripts[script]
