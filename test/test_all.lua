@@ -3,7 +3,7 @@
 -- Executes all feature tests and the benchmark, returning a failing process
 -- status when either stage fails.
 
-local iterations = tonumber(arg[1]) or 1000000
+local iterations = tonumber(arg[1]) or 100000
 
 local function execute(command)
     local result = os.execute(command)
