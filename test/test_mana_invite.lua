@@ -47,12 +47,11 @@ ManaInvite:UpdateEvents()
 assert(not ManaInvite.eventFrame:IsEventRegistered("CHAT_MSG_WHISPER"), "whisper event absent while disabled")
 assert(not ManaInvite.eventFrame:IsEventRegistered("GUILD_ROSTER_UPDATE"), "roster event absent while disabled")
 
--- Roster changes while OFF are not processed.
 mock.setGuildMembers("A-Realm")
 mock.fireEvent("GUILD_ROSTER_UPDATE")
 assert(not ManaInvite.IsGuildMember("A-Realm"), "disabled feature does not rebuild cache")
 
--- OFF -> ON rebuilds immediately from the current roster.
+-- OFF -> ON rebuilds immediately from current roster.
 mock.setGuildMembers("B-Realm")
 db.enabled = true
 ManaInvite:UpdateEvents()
@@ -61,7 +60,7 @@ assert(ManaInvite.eventFrame:IsEventRegistered("GUILD_ROSTER_UPDATE"), "roster e
 assert(ManaInvite.IsGuildMember("B-Realm"), "activation immediately rebuilds current roster")
 assert(not ManaInvite.IsGuildMember("A-Realm"), "activation cache does not retain stale roster")
 
--- ON is idempotent and does not duplicate listeners or rebuild unnecessarily.
+-- ON is idempotent and does not duplicate listeners.
 local whisperListeners = #mock.events.CHAT_MSG_WHISPER
 local rosterListeners = #mock.events.GUILD_ROSTER_UPDATE
 ManaInvite:UpdateEvents()
@@ -70,7 +69,6 @@ ManaInvite:UpdateEvents()
 assert(#mock.events.CHAT_MSG_WHISPER == whisperListeners, "repeated ON does not duplicate whisper listener")
 assert(#mock.events.GUILD_ROSTER_UPDATE == rosterListeners, "repeated ON does not duplicate roster listener")
 
--- GUILD_ROSTER_UPDATE rebuilds with wipe + rebuild.
 mock.setGuildMembers("Fresh-Realm", "Second-Realm")
 mock.fireEvent("GUILD_ROSTER_UPDATE")
 assert(ManaInvite.IsGuildMember("Fresh-Realm"), "new guild member cached")
