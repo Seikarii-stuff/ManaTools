@@ -14,8 +14,9 @@ local function loadFile(path, ...)
 end
 
 ManaToolsDB = {}
-ManaTools = {}
-loadFile("Bootstrap.lua", "ManaTools", ManaTools)
+local addonNamespace = {}
+loadFile("Bootstrap.lua", "ManaTools", addonNamespace)
+ManaTools = addonNamespace
 loadFile("NoWasteCoin/NoWasteCoin.lua", "ManaTools", ManaTools)
 
 local db = ManaTools.DB.NoWasteCoin
