@@ -51,12 +51,20 @@ end
 
 local eventFrame = CreateFrame("Frame")
 local initialized = false
+local eventsRegistered = false
 
 function ManaInvite:UpdateEvents()
-    if db.enabled == true then
+    local enabled = db.enabled == true
+
+    if enabled and not eventsRegistered then
+        eventFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
         eventFrame:RegisterEvent("CHAT_MSG_WHISPER")
-    else
+        eventsRegistered = true
+        RebuildGuildMembers()
+    elseif not enabled and eventsRegistered then
+        eventFrame:UnregisterEvent("GUILD_ROSTER_UPDATE")
         eventFrame:UnregisterEvent("CHAT_MSG_WHISPER")
+        eventsRegistered = false
     end
 end
 
@@ -67,8 +75,6 @@ function ManaInvite:Initialize()
     end
 
     initialized = true
-    eventFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
-    RebuildGuildMembers()
     self:UpdateEvents()
 end
 

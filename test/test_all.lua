@@ -1,7 +1,7 @@
 -- ManaTools complete local test runner.
 -- Run from repository root: lua test/test_all.lua [iterations]
--- Executes tests and benchmark, preserves their console output, and returns
--- a failing process status when either stage fails.
+-- Executes all feature tests and the benchmark, returning a failing process
+-- status when either stage fails.
 
 local iterations = tonumber(arg[1]) or 1000000
 
@@ -14,10 +14,12 @@ local function execute(command)
 end
 
 print("=== ManaTools test suite ===")
-local testsPassed = execute("lua test/test_no_waste_coin.lua")
+local noWastePassed = execute("lua test/test_no_waste_coin.lua")
+local manaInvitePassed = execute("lua test/test_mana_invite.lua")
+local testsPassed = noWastePassed and manaInvitePassed
 if not testsPassed then
     print("TESTS: FAIL")
-    print("The test command failed. Review the failure output above.")
+    print("One or more test commands failed. Review the failure output above.")
 else
     print("TESTS: PASS")
 end
@@ -34,6 +36,8 @@ end
 
 print("")
 print("=== Summary ===")
+print("NoWasteCoin tests: " .. (noWastePassed and "PASS" or "FAIL"))
+print("ManaInvite tests: " .. (manaInvitePassed and "PASS" or "FAIL"))
 print("Tests: " .. (testsPassed and "PASS" or "FAIL"))
 print("Benchmark: " .. (benchmarkPassed and "PASS" or "FAIL"))
 print("Benchmark results: test/results/benchmark.txt")
