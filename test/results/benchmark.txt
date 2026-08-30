@@ -1,0 +1,7 @@
+ManaTools benchmark results
+===========================
+
+This file is generated/overwritten by test/perf/benchmark.lua.
+Run: lua test/perf/benchmark.lua [iterations]
+
+No benchmark has been run yet.
