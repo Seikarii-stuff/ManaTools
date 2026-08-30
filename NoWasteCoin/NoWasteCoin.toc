@@ -1,0 +1,9 @@
+## Interface: 120100
+## Title: NoWasteCoin
+## Notes: Prevents accidental Nebulous Voidcore spending outside allowed content.
+## Author: Seikarii
+## Version: 1.0.0
+## SavedVariables: NoWasteCoinDB
+
+NoWasteCoin.lua
+Options.lua
