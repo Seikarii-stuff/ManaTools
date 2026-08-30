@@ -40,6 +40,12 @@ loadFile("Bootstrap.lua", "ManaTools", ManaTools)
 assert(ManaTools.DB == bootstrapDB, "Bootstrap is idempotent")
 assert(ManaTools.DB.ManaInvite.enabled == true, "Bootstrap preserves ManaInvite setting")
 
+-- Initialize is idempotent and does not duplicate the roster listener.
+local rosterListeners = #mock.events.GUILD_ROSTER_UPDATE
+ManaInvite:Initialize()
+ManaInvite:Initialize()
+assert(#mock.events.GUILD_ROSTER_UPDATE == rosterListeners, "repeated Initialize does not duplicate roster listener")
+
 -- Guild cache uses wipe + rebuild and supports Retail's name-realm format.
 mock.setGuildMembers("GuildOne-Realm", "GuildTwo-OtherRealm")
 mock.fireEvent("GUILD_ROSTER_UPDATE")
