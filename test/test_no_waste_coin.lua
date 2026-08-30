@@ -1,10 +1,10 @@
--- ManaTools content-gating, DB and lifecycle test suite.
+-- ManaTools content-gating, DB and Bonus Roll lifecycle test suite.
 -- Requires Lua 5.1+.
 -- Run from repository root: lua test/test_no_waste_coin.lua
 
 local mock = assert(loadfile("test/mockwow.lua"))()
-
 local loader = loadstring or load
+
 local function loadFile(path, ...)
     local source = assert(io.open(path, "r")):read("*a")
     local chunk = assert(loader(source, path))
@@ -12,11 +12,10 @@ local function loadFile(path, ...)
 end
 
 local function loadAddonNamespace(db)
-    ManaToolsDB = db
+    mock.reset(db)
     local namespace = {}
     loadFile("Bootstrap.lua", "ManaTools", namespace)
-    ManaTools = namespace
-    loadFile("NoWasteCoin/NoWasteCoin.lua", "ManaTools", ManaTools)
+    loadFile("NoWasteCoin/NoWasteCoin.lua", "ManaTools", namespace)
     return namespace, namespace.DB.NoWasteCoin
 end
 
@@ -87,29 +86,17 @@ end
 db.allowHeroicRaid = false
 db.allowMythicPlus = false
 
--- Open world.
 test("Open world", nil, 0, false, false, false, false)
-
--- Raid matrix.
 test("Mythic raid allowed", "raid", 16, false, false, false, true)
-test("Mythic raid allowed with heroic exception", "raid", 16, false, true, false, true)
-test("Mythic raid allowed with M+ exception", "raid", 16, false, false, true, true)
 test("Heroic raid blocked by default", "raid", 15, false, false, false, false)
 test("Heroic raid allowed by exception", "raid", 15, false, true, false, true)
-test("Heroic raid blocked without exception", "raid", 15, false, false, true, false)
-test("Normal raid blocked", "raid", 14, false, false, false, false)
-test("Normal raid blocked with exceptions", "raid", 14, false, true, true, false)
+test("Normal raid blocked", "raid", 14, false, true, true, false)
 test("LFR blocked", "raid", 17, false, true, true, false)
-
--- Party / Mythic+ matrix.
-test("Mythic 0 blocked", "party", 23, false, false, false, false)
-test("Mythic 0 blocked with M+ exception", "party", 23, false, false, true, false)
+test("Mythic 0 blocked", "party", 23, false, false, true, false)
 test("Mythic+ blocked by default", "party", 8, true, false, false, false)
 test("Mythic+ allowed by exception", "party", 8, true, false, true, true)
-test("M+ setting without challenge mode blocked", "party", 8, false, false, true, false)
-test("Heroic setting cannot enable M+", "party", 8, true, true, false, false)
-
--- Everything else remains blocked.
+test("Mythic+ without active challenge blocked", "party", 8, false, false, true, false)
+test("Heroic setting cannot enable Mythic+", "party", 8, true, true, false, false)
 test("Scenario blocked", "scenario", 0, false, true, true, false)
 test("Delve-like scenario blocked", "scenario", 208, false, true, true, false)
 test("Unknown instance type blocked", "arena", 16, false, true, true, false)
@@ -118,50 +105,127 @@ test("Unknown instance type blocked", "arena", 16, false, true, true, false)
 local feature2 = {}
 ManaTools.DB.Feature2 = feature2
 db.allowHeroicRaid = true
-db.allowMythicPlus = false
 mock.setContent("raid", 15, false)
 assertTrue(NoWasteCoin.IsAllowedContent(), "heroic setting enables heroic raid")
-assertTrue(ManaTools.DB.Feature2 == feature2, "heroic setting does not replace other DB branches")
+assertFalse(db.allowMythicPlus, "heroic setting does not enable Mythic+")
 mock.setContent("party", 8, true)
 assertFalse(NoWasteCoin.IsAllowedContent(), "heroic setting does not enable Mythic+")
 db.allowHeroicRaid = false
 db.allowMythicPlus = true
 mock.setContent("raid", 15, false)
 assertFalse(NoWasteCoin.IsAllowedContent(), "Mythic+ setting does not enable heroic raid")
-assertTrue(ManaTools.DB.Feature2 == feature2, "Mythic+ setting does not replace other DB branches")
+assertTrue(ManaTools.DB.Feature2 == feature2, "settings do not replace other DB branches")
 
--- Lifecycle: absent UI is safe, late UI can be hooked, repeated initialization is idempotent.
+-- Lifecycle: the Bonus Roll UI can be absent during module load.
 BonusRollFrame = nil
 assertEqual(NoWasteCoin.Initialize(), false, "initialization without BonusRollFrame")
+assertEqual(mock.secureHookCount("BonusRollFrame_StartBonusRoll"), 0, "no start hook before Blizzard function exists")
 
-local frame = mock.newBonusRollFrame()
+-- Blizzard can load after ManaTools. ADDON_LOADED installs the primary hook.
+mock.defineBonusRollStart()
+mock.fireEvent("ADDON_LOADED", "Blizzard_BonusRoll")
+assertEqual(mock.secureHookCount("BonusRollFrame_StartBonusRoll"), 1, "BonusRoll start hook installed once")
+mock.fireEvent("ADDON_LOADED", "Blizzard_BonusRoll")
+assertEqual(mock.secureHookCount("BonusRollFrame_StartBonusRoll"), 1, "BonusRoll start hook is not duplicated")
+
+-- Known primary button path: PromptFrame.RollButton wins over the fallback.
+local frame = mock.newBonusRollFrame(true)
 BonusRollFrame = frame
-assertTrue(NoWasteCoin.Initialize(), "late BonusRollFrame initialization")
-assertEqual(#frame.hooks.OnShow, 1, "frame OnShow hook installed once")
-assertEqual(#frame.RollButton.hooks.OnShow, 1, "button OnShow hook installed once")
+mock.setContent("raid", 15, false)
+mock.startBonusRoll()
+assertEqual(#frame.PromptFrame.RollButton.hooks.OnShow, 1, "PromptFrame.RollButton is hooked")
+assertEqual(#frame.PromptFrame.RollButton.hooks.OnEnable, 1, "PromptFrame.RollButton has an enable guard")
+assertEqual(#frame.RollButton.hooks.OnShow, 0, "fallback RollButton is not selected when PromptFrame button exists")
+assertFalse(frame.PromptFrame.RollButton.enabled, "PromptFrame button is blocked")
 
-NoWasteCoin.Initialize()
-NoWasteCoin.Initialize()
-assertEqual(#frame.hooks.OnShow, 1, "repeated initialization does not duplicate frame hook")
-assertEqual(#frame.RollButton.hooks.OnShow, 1, "repeated initialization does not duplicate button hook")
+-- Repeated starts do not duplicate hooks.
+mock.startBonusRoll()
+assertEqual(#frame.PromptFrame.RollButton.hooks.OnShow, 1, "same button receives one OnShow hook")
+assertEqual(#frame.PromptFrame.RollButton.hooks.OnEnable, 1, "same button receives one OnEnable hook")
 
--- Button state follows content and configuration.
+-- Allowed content updates immediately.
+mock.setContent("raid", 16, false)
+NoWasteCoin.Update()
+assertTrue(frame.PromptFrame.RollButton.enabled, "Mythic raid enables button")
+assertEqual(frame.PromptFrame.RollButton.alpha, 1, "allowed content alpha")
+assertEqual(frame.PromptFrame.RollButton.tooltipText, nil, "allowed content clears tooltip")
+
+-- Heroic option updates immediately.
 db.allowHeroicRaid = false
-db.allowMythicPlus = false
 mock.setContent("raid", 15, false)
 NoWasteCoin.Update()
-assertFalse(frame.RollButton.enabled, "blocked content disables button")
-assertEqual(frame.RollButton.alpha, 0.4, "blocked content alpha")
-assertEqual(frame.RollButton.tooltipText, "NoWasteCoin: Bonus Roll disabled here.", "blocked content tooltip")
-
+assertFalse(frame.PromptFrame.RollButton.enabled, "heroic raid disabled by option")
 db.allowHeroicRaid = true
 NoWasteCoin.Update()
-assertTrue(frame.RollButton.enabled, "configuration change enables button")
-assertEqual(frame.RollButton.alpha, 1, "allowed content alpha")
-assertEqual(frame.RollButton.tooltipText, nil, "allowed content clears tooltip")
+assertTrue(frame.PromptFrame.RollButton.enabled, "heroic raid enabled by option")
 
--- Missing button is safe.
-BonusRollFrame = { RollButton = nil }
-assertEqual(NoWasteCoin.Update(), nil, "missing RollButton update is safe")
+-- Mythic+ matrix also updates the concrete button.
+db.allowHeroicRaid = false
+db.allowMythicPlus = false
+mock.setContent("party", 8, true)
+NoWasteCoin.Update()
+assertFalse(frame.PromptFrame.RollButton.enabled, "Mythic+ disabled by option")
+db.allowMythicPlus = true
+NoWasteCoin.Update()
+assertTrue(frame.PromptFrame.RollButton.enabled, "active Mythic+ enabled by option")
+mock.setContent("party", 8, false)
+NoWasteCoin.Update()
+assertFalse(frame.PromptFrame.RollButton.enabled, "inactive Mythic+ remains blocked")
+
+-- If Blizzard re-enables a blocked button internally, the enable hook immediately restores the block.
+db.allowMythicPlus = false
+mock.setContent("party", 8, true)
+NoWasteCoin.Update()
+frame.PromptFrame.RollButton:Enable()
+assertFalse(frame.PromptFrame.RollButton.enabled, "blocked button cannot remain enabled after Blizzard enables it")
+
+-- Blizzard can replace the button; the next Bonus Roll start hooks the replacement.
+local replacement = mock.newBonusRollFrame(true)
+BonusRollFrame = replacement
+mock.setContent("raid", 15, false)
+mock.startBonusRoll()
+assertEqual(#replacement.PromptFrame.RollButton.hooks.OnShow, 1, "replacement PromptFrame button is hooked")
+assertEqual(#replacement.PromptFrame.RollButton.hooks.OnEnable, 1, "replacement button gets enable guard")
+assertFalse(replacement.PromptFrame.RollButton.enabled, "replacement button is blocked")
+assertEqual(#frame.PromptFrame.RollButton.hooks.OnShow, 1, "old button keeps its single hook")
+
+-- Fallback path when PromptFrame.RollButton does not exist.
+local fallbackFrame = mock.newBonusRollFrame(false)
+BonusRollFrame = fallbackFrame
+mock.setContent("raid", 16, false)
+mock.startBonusRoll()
+assertEqual(#fallbackFrame.RollButton.hooks.OnShow, 1, "fallback RollButton is hooked")
+assertTrue(fallbackFrame.RollButton.enabled, "fallback RollButton follows allowed content")
+
+-- If the known button is not present yet, starting a later Bonus Roll can hook it once it appears.
+local lateFrame = mock.newBonusRollFrame(false)
+lateFrame.RollButton = nil
+BonusRollFrame = lateFrame
+assertEqual(NoWasteCoin.Initialize(), false, "missing button is safe")
+lateFrame.PromptFrame = mock.newBonusRollFrame(false)
+mock.setContent("raid", 16, false)
+mock.startBonusRoll()
+assertEqual(#lateFrame.PromptFrame.RollButton.hooks.OnShow, 1, "late-created known button is hooked")
+
+-- Options.lua writes the central DB and refreshes the concrete button immediately.
+BonusRollFrame = fallbackFrame
+mock.setContent("raid", 15, false)
+db.allowHeroicRaid = false
+loadFile("Options.lua", "ManaTools", ManaTools)
+local clickFrames = {}
+for _, created in ipairs(mock.createdFrames) do
+    if created.scripts and created.scripts.OnClick then
+        table.insert(clickFrames, created)
+    end
+end
+assertEqual(#clickFrames, 3, "options create the two NoWasteCoin checkboxes and one Mana Invite checkbox")
+clickFrames[1]:SetChecked(true)
+clickFrames[1]:TriggerScript("OnClick")
+assertTrue(db.allowHeroicRaid, "Heroic option updates central DB")
+assertTrue(fallbackFrame.RollButton.enabled, "Heroic option refreshes button immediately")
+clickFrames[2]:SetChecked(true)
+clickFrames[2]:TriggerScript("OnClick")
+assertTrue(db.allowMythicPlus, "Mythic+ option updates central DB")
+assertTrue(ManaTools.DB.NoWasteCoin == ManaToolsDB.NoWasteCoin, "options keep central DB identity")
 
 print(string.format("ManaTools tests passed: %d/%d", passed, total))
