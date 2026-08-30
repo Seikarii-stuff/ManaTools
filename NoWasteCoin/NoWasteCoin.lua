@@ -11,8 +11,8 @@ end
 local NoWasteCoin = ManaTools.NoWasteCoin
 local hookedFrame
 local hookedButton
-local hookedOnClick
 local wrappedOnClick
+local visualHookedButton
 local bonusRollStartHooked = false
 
 local function IsAllowedContent()
@@ -72,21 +72,16 @@ local function HookRollButton(button)
     end
 
     local currentOnClick = button:GetScript("OnClick")
-
-    -- A post-click HookScript cannot be a security barrier: Blizzard's handler
-    -- would already have run. Wrap the existing OnClick instead so the gate is
-    -- evaluated before the original callback. Re-check if Blizzard replaces
-    -- the script on an existing button.
-    if button ~= hookedButton or currentOnClick ~= wrappedOnClick then
+    if currentOnClick ~= wrappedOnClick or button ~= hookedButton then
         hookedButton = button
-        hookedOnClick = currentOnClick
+        local originalOnClick = currentOnClick
         wrappedOnClick = function(self, ...)
             if not IsAllowedContent() then
                 return
             end
 
-            if hookedOnClick then
-                return hookedOnClick(self, ...)
+            if originalOnClick then
+                return originalOnClick(self, ...)
             end
         end
         button:SetScript("OnClick", wrappedOnClick)
@@ -108,18 +103,17 @@ local function HookBonusRollUI()
 
     HookRollButton(button)
 
-    if button ~= hookedButton or not button.GetScript then
-        return false
+    if visualHookedButton ~= button then
+        visualHookedButton = button
+        button:HookScript("OnShow", UpdateRollButton)
+        button:HookScript("OnEnable", function(self)
+            if not IsAllowedContent() then
+                self:Disable()
+                self:SetAlpha(0.4)
+                self.tooltipText = "NoWasteCoin: Bonus Roll disabled here."
+            end
+        end)
     end
-
-    button:HookScript("OnShow", UpdateRollButton)
-    button:HookScript("OnEnable", function()
-        if not IsAllowedContent() then
-            button:Disable()
-            button:SetAlpha(0.4)
-            button.tooltipText = "NoWasteCoin: Bonus Roll disabled here."
-        end
-    end)
 
     UpdateRollButton()
     return true
