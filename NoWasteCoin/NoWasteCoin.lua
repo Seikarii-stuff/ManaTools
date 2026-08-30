@@ -11,8 +11,8 @@ end
 local NoWasteCoin = ManaTools.NoWasteCoin
 local hookedFrame
 local hookedButton
-local wrappedOnClick
 local visualHookedButton
+local wrappedOnClicks = setmetatable({}, { __mode = "k" })
 local bonusRollStartHooked = false
 
 local function IsAllowedContent()
@@ -72,10 +72,13 @@ local function HookRollButton(button)
     end
 
     local currentOnClick = button:GetScript("OnClick")
-    if currentOnClick ~= wrappedOnClick or button ~= hookedButton then
-        hookedButton = button
+    local wrappedOnClick = wrappedOnClicks[button]
+
+    if currentOnClick ~= wrappedOnClick then
         local originalOnClick = currentOnClick
         wrappedOnClick = function(self, ...)
+            -- This is the actual spending barrier. Visual state is deliberately
+            -- not trusted because Blizzard can change it during the lifecycle.
             if not IsAllowedContent() then
                 return
             end
@@ -84,9 +87,11 @@ local function HookRollButton(button)
                 return originalOnClick(self, ...)
             end
         end
+        wrappedOnClicks[button] = wrappedOnClick
         button:SetScript("OnClick", wrappedOnClick)
     end
 
+    hookedButton = button
     return true
 end
 
