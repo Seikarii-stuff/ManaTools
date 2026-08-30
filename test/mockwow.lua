@@ -10,11 +10,32 @@ local function newFrame()
         enabled = true,
         alpha = 1,
         tooltipText = nil,
+        registeredEvents = {},
     }
 
     function frame:RegisterEvent(event)
+        if self.registeredEvents[event] then
+            return
+        end
+        self.registeredEvents[event] = true
         MockWoW.events[event] = MockWoW.events[event] or {}
         table.insert(MockWoW.events[event], self)
+    end
+
+    function frame:UnregisterEvent(event)
+        if not self.registeredEvents[event] then
+            return
+        end
+        self.registeredEvents[event] = nil
+        for i = #MockWoW.events[event], 1, -1 do
+            if MockWoW.events[event][i] == self then
+                table.remove(MockWoW.events[event], i)
+            end
+        end
+    end
+
+    function frame:IsEventRegistered(event)
+        return self.registeredEvents[event] == true
     end
 
     function frame:SetScript(script, callback)
@@ -45,10 +66,7 @@ local function newFrame()
     function frame:Enable() self.enabled = true end
     function frame:Disable() self.enabled = false end
     function frame:SetAlpha(value) self.alpha = value end
-
-    function frame:CreateFontString()
-        return newFrame()
-    end
+    function frame:CreateFontString() return newFrame() end
 
     return frame
 end
@@ -60,10 +78,15 @@ function MockWoW.reset(db)
     MockWoW.instanceType = nil
     MockWoW.difficultyID = 0
     MockWoW.challengeActive = false
+    MockWoW.guildMembers = {}
+    MockWoW.invites = {}
 
     IsInInstance = function() return MockWoW.inInstance, MockWoW.instanceType end
     GetInstanceInfo = function() return "Mock Instance", MockWoW.instanceType or "none", MockWoW.difficultyID end
     C_ChallengeMode = { IsChallengeModeActive = function() return MockWoW.challengeActive end }
+    GetNumGuildMembers = function() return #MockWoW.guildMembers end
+    GetGuildRosterInfo = function(index) return MockWoW.guildMembers[index] end
+    C_PartyInfo = { InviteUnit = function(name) table.insert(MockWoW.invites, name) end }
     SlashCmdList = {}
     Settings = {
         RegisterCanvasLayoutCategory = function(_, name) return { GetID = function() return 1 end, name = name } end,
@@ -73,9 +96,7 @@ function MockWoW.reset(db)
     InterfaceOptions_AddCategory = function() end
     InterfaceOptionsFrame_OpenToCategory = function() end
 
-    CreateFrame = function()
-        return newFrame()
-    end
+    CreateFrame = function() return newFrame() end
     BonusRollFrame = nil
 end
 
@@ -83,6 +104,14 @@ function MockWoW.newBonusRollFrame()
     local frame = newFrame()
     frame.RollButton = newFrame()
     return frame
+end
+
+function MockWoW.setGuildMembers(...)
+    MockWoW.guildMembers = {...}
+end
+
+function MockWoW.clearInvites()
+    MockWoW.invites = {}
 end
 
 function MockWoW.setContent(instanceType, difficultyID, challengeActive)
@@ -100,9 +129,11 @@ function MockWoW.setWorld()
 end
 
 function MockWoW.fireEvent(event, ...)
-    for _, frame in ipairs(MockWoW.events[event] or {}) do
+    local listeners = MockWoW.events[event] or {}
+    for i = 1, #listeners do
+        local frame = listeners[i]
         local callback = frame.scripts and frame.scripts.OnEvent
-        if callback then
+        if callback and frame.registeredEvents[event] then
             callback(frame, event, ...)
         end
     end
