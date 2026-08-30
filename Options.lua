@@ -1,22 +1,8 @@
 local ADDON_NAME, ManaTools = ...
 
-ManaTools = ManaTools or {}
-
-local function GetDB()
-    NoWasteCoinDB = NoWasteCoinDB or {}
-    if NoWasteCoinDB.allowHeroicRaid == nil then
-        NoWasteCoinDB.allowHeroicRaid = false
-    end
-    if NoWasteCoinDB.allowMythicPlus == nil then
-        NoWasteCoinDB.allowMythicPlus = false
-    end
-    return NoWasteCoinDB
-end
-
+local db = ManaTools.DB.NoWasteCoin
 local function Refresh()
-    if NoWasteCoin_Update then
-        NoWasteCoin_Update()
-    end
+    ManaTools.NoWasteCoin.Update()
 end
 
 local panel = CreateFrame("Frame")
@@ -39,7 +25,7 @@ local heroic = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButt
 heroic:SetPoint("TOPLEFT", info, "BOTTOMLEFT", 0, -16)
 heroic.Text:SetText("Permitir Bonus Roll en Banda Heroica")
 heroic:SetScript("OnClick", function(self)
-    GetDB().allowHeroicRaid = self:GetChecked()
+    db.allowHeroicRaid = self:GetChecked()
     Refresh()
 end)
 
@@ -47,12 +33,11 @@ local mythicPlus = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheck
 mythicPlus:SetPoint("TOPLEFT", heroic, "BOTTOMLEFT", 0, -8)
 mythicPlus.Text:SetText("Permitir Bonus Roll en Mítico+")
 mythicPlus:SetScript("OnClick", function(self)
-    GetDB().allowMythicPlus = self:GetChecked()
+    db.allowMythicPlus = self:GetChecked()
     Refresh()
 end)
 
 panel:SetScript("OnShow", function()
-    local db = GetDB()
     heroic:SetChecked(db.allowHeroicRaid)
     mythicPlus:SetChecked(db.allowMythicPlus)
 end)

@@ -7,6 +7,6 @@
 ## SavedVariables: NoWasteCoinDB
 
 Bootstrap.lua
+NoWasteCoin\NoWasteCoin.lua
 Options.lua
 SlashCmd.lua
-NoWasteCoin\NoWasteCoin.lua

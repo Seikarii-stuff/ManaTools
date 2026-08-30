@@ -1,12 +1,19 @@
-local ADDON_NAME = ...
+local ADDON_NAME, ManaTools = ...
 
-NoWasteCoinDB = NoWasteCoinDB or {}
-if NoWasteCoinDB.allowHeroicRaid == nil then
-    NoWasteCoinDB.allowHeroicRaid = false
+local db = NoWasteCoinDB or ManaTools.DB.NoWasteCoin or {}
+ManaTools.DB.NoWasteCoin = db
+NoWasteCoinDB = db
+
+if db.allowHeroicRaid == nil then
+    db.allowHeroicRaid = false
 end
-if NoWasteCoinDB.allowMythicPlus == nil then
-    NoWasteCoinDB.allowMythicPlus = false
+if db.allowMythicPlus == nil then
+    db.allowMythicPlus = false
 end
+
+local NoWasteCoin = ManaTools.NoWasteCoin
+local hookedFrame
+local hookedButton
 
 local function IsAllowedContent()
     local inInstance, instanceType = IsInInstance()
@@ -16,22 +23,18 @@ local function IsAllowedContent()
 
     local _, _, difficultyID = GetInstanceInfo()
 
-    -- Only Mythic raid is enabled by default.
     if instanceType == "raid" and difficultyID == 16 then
         return true
     end
 
-    -- Heroic raid is an explicit exception controlled by the setting.
     if instanceType == "raid" and difficultyID == 15 then
-        return NoWasteCoinDB.allowHeroicRaid == true
+        return db.allowHeroicRaid == true
     end
 
-    -- Mythic+ is an explicit exception controlled by the setting.
     if instanceType == "party" and C_ChallengeMode and C_ChallengeMode.IsChallengeModeActive then
-        return NoWasteCoinDB.allowMythicPlus == true and C_ChallengeMode.IsChallengeModeActive()
+        return db.allowMythicPlus == true and C_ChallengeMode.IsChallengeModeActive()
     end
 
-    -- Normal raid, Mythic 0, Delves, dungeons and every other content remain blocked.
     return false
 end
 
@@ -59,9 +62,13 @@ local function HookBonusRollUI()
         return false
     end
 
-    if not BonusRollFrame.NoWasteCoinHooked then
-        BonusRollFrame.NoWasteCoinHooked = true
+    if hookedFrame ~= BonusRollFrame then
+        hookedFrame = BonusRollFrame
         BonusRollFrame:HookScript("OnShow", UpdateRollButton)
+    end
+
+    if hookedButton ~= BonusRollFrame.RollButton then
+        hookedButton = BonusRollFrame.RollButton
         BonusRollFrame.RollButton:HookScript("OnShow", UpdateRollButton)
     end
 
@@ -69,25 +76,27 @@ local function HookBonusRollUI()
     return true
 end
 
-local eventFrame = CreateFrame("Frame")
-eventFrame:RegisterEvent("PLAYER_LOGIN")
-eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-eventFrame:RegisterEvent("ZONE_CHANGED")
-eventFrame:RegisterEvent("ZONE_CHANGED_INDOORS")
-eventFrame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+function NoWasteCoin.Initialize()
+    return HookBonusRollUI()
+end
 
-eventFrame:SetScript("OnEvent", function()
-    HookBonusRollUI()
-end)
-
-C_Timer.After(0, HookBonusRollUI)
-C_Timer.After(1, HookBonusRollUI)
-
-function NoWasteCoin_IsAllowedContent()
+function NoWasteCoin.IsAllowedContent()
     return IsAllowedContent()
 end
 
-function NoWasteCoin_Update()
-    UpdateRollButton()
+function NoWasteCoin.Update()
+    return UpdateRollButton()
 end
+
+local eventFrame = CreateFrame("Frame")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+eventFrame:RegisterEvent("ADDON_LOADED")
+eventFrame:SetScript("OnEvent", function(_, event, addonName)
+    if event == "ADDON_LOADED" and addonName ~= "Blizzard_BonusRoll" then
+        return
+    end
+    HookBonusRollUI()
+end)
+
+NoWasteCoin.Initialize()

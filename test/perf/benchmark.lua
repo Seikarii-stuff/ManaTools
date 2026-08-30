@@ -9,7 +9,8 @@ local mock = assert(loadfile("test/mockwow.lua"))()
 local source = assert(io.open("NoWasteCoin/NoWasteCoin.lua", "r")):read("*a")
 local loader = loadstring or load
 local chunk = assert(loader(source, "NoWasteCoin.lua"))
-chunk("NoWasteCoin")
+local ManaTools = { DB = {}, NoWasteCoin = {} }
+chunk("NoWasteCoin", ManaTools)
 
 local cases = {
     { name = "Mythic raid", type = "raid", difficulty = 16, challenge = false, heroic = false, mythicPlus = false },
@@ -29,8 +30,8 @@ local results = {
 
 for _, case in ipairs(cases) do
     mock.reset()
-    NoWasteCoinDB.allowHeroicRaid = case.heroic
-    NoWasteCoinDB.allowMythicPlus = case.mythicPlus
+    ManaTools.DB.NoWasteCoin.allowHeroicRaid = case.heroic
+    ManaTools.DB.NoWasteCoin.allowMythicPlus = case.mythicPlus
     if case.type then
         mock.setContent(case.type, case.difficulty, case.challenge)
     else
@@ -40,7 +41,7 @@ for _, case in ipairs(cases) do
     local start = os.clock()
     local allowed
     for _ = 1, iterations do
-        allowed = NoWasteCoin_IsAllowedContent()
+        allowed = ManaTools.NoWasteCoin.IsAllowedContent()
     end
     local elapsed = os.clock() - start
     local rate = elapsed > 0 and iterations / elapsed or math.huge
