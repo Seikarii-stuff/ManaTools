@@ -11,16 +11,47 @@ local function loadFile(path, ...)
     chunk(...)
 end
 
--- Bootstrap must own the relationship between the SavedVariables global and the addon namespace.
-ManaToolsDB = nil
-local addonNamespace = {}
-loadFile("Bootstrap.lua", "ManaTools", addonNamespace)
-ManaTools = addonNamespace
-assert(ManaTools.DB == ManaToolsDB, "ManaTools.DB must reference ManaToolsDB")
-loadFile("NoWasteCoin/NoWasteCoin.lua", "ManaTools", ManaTools)
+local function loadAddonNamespace(db)
+    ManaToolsDB = db
+    local namespace = {}
+    loadFile("Bootstrap.lua", "ManaTools", namespace)
+    ManaTools = namespace
+    loadFile("NoWasteCoin/NoWasteCoin.lua", "ManaTools", ManaTools)
+    return namespace, namespace.DB.NoWasteCoin
+end
 
-local db = ManaTools.DB.NoWasteCoin
+-- Existing central DB values are preserved.
+local existingFeature2 = {}
+local existingDB = {
+    NoWasteCoin = {
+        allowHeroicRaid = true,
+        allowMythicPlus = true,
+    },
+    Feature2 = existingFeature2,
+}
+local ManaTools, db = loadAddonNamespace(existingDB)
 local NoWasteCoin = ManaTools.NoWasteCoin
+assert(ManaTools.DB == ManaToolsDB, "ManaTools.DB must reference ManaToolsDB")
+assert(ManaTools.DB.NoWasteCoin == existingDB.NoWasteCoin, "existing NoWasteCoin branch is preserved")
+assert(db.allowHeroicRaid == true, "existing heroic value preserved")
+assert(db.allowMythicPlus == true, "existing Mythic+ value preserved")
+assert(ManaTools.DB.Feature2 == existingFeature2, "unrelated DB branches are preserved")
+
+-- A fresh DB receives defaults exactly once.
+ManaTools, db = loadAddonNamespace({})
+NoWasteCoin = ManaTools.NoWasteCoin
+assert(ManaTools.DB.NoWasteCoin ~= nil, "NoWasteCoin DB branch exists")
+assert(db.allowHeroicRaid == false, "heroic default")
+assert(db.allowMythicPlus == false, "Mythic+ default")
+
+-- Re-running Bootstrap must not replace the DB or reset settings.
+db.allowHeroicRaid = true
+db.allowMythicPlus = true
+local bootstrapDB = ManaToolsDB
+loadFile("Bootstrap.lua", "ManaTools", ManaTools)
+assert(ManaTools.DB == bootstrapDB, "Bootstrap preserves existing DB table")
+assert(ManaTools.DB.NoWasteCoin.allowHeroicRaid == true, "Bootstrap preserves heroic setting")
+assert(ManaTools.DB.NoWasteCoin.allowMythicPlus == true, "Bootstrap preserves Mythic+ setting")
 
 local function assertEqual(actual, expected, name)
     if actual ~= expected then
@@ -52,38 +83,7 @@ local function test(name, instanceType, difficultyID, challengeActive, heroic, m
     passed = passed + 1
 end
 
--- Central DB and defaults.
-total = total + 1
-assertTrue(ManaTools.DB == ManaToolsDB, "central DB identity")
-passed = passed + 1
-
-total = total + 1
-assertTrue(ManaTools.DB.NoWasteCoin ~= nil, "NoWasteCoin DB branch exists")
-passed = passed + 1
-
-total = total + 1
-assertFalse(db.allowHeroicRaid, "heroic default")
-passed = passed + 1
-
-total = total + 1
-assertFalse(db.allowMythicPlus, "Mythic+ default")
-passed = passed + 1
-
--- Existing values are preserved by feature initialization.
-db.allowHeroicRaid = true
-db.allowMythicPlus = true
-NoWasteCoin.Initialize()
-assertTrue(db.allowHeroicRaid, "existing heroic value preserved")
-assertTrue(db.allowMythicPlus, "existing Mythic+ value preserved")
-
--- Re-running Bootstrap must not replace the DB or reset settings.
-local existingDB = ManaToolsDB
-loadFile("Bootstrap.lua", "ManaTools", ManaTools)
-assertTrue(ManaTools.DB == existingDB, "Bootstrap preserves existing DB table")
-assertTrue(ManaTools.DB.NoWasteCoin.allowHeroicRaid, "Bootstrap preserves heroic setting")
-assertTrue(ManaTools.DB.NoWasteCoin.allowMythicPlus, "Bootstrap preserves Mythic+ setting")
-
--- Return to defaults for content matrix.
+-- Restore defaults for content matrix.
 db.allowHeroicRaid = false
 db.allowMythicPlus = false
 
@@ -115,15 +115,20 @@ test("Delve-like scenario blocked", "scenario", 208, false, true, true, false)
 test("Unknown instance type blocked", "arena", 16, false, true, true, false)
 
 -- Configuration branches are independent.
+local feature2 = {}
+ManaTools.DB.Feature2 = feature2
 db.allowHeroicRaid = true
+db.allowMythicPlus = false
 mock.setContent("raid", 15, false)
 assertTrue(NoWasteCoin.IsAllowedContent(), "heroic setting enables heroic raid")
+assertTrue(ManaTools.DB.Feature2 == feature2, "heroic setting does not replace other DB branches")
 mock.setContent("party", 8, true)
 assertFalse(NoWasteCoin.IsAllowedContent(), "heroic setting does not enable Mythic+")
 db.allowHeroicRaid = false
 db.allowMythicPlus = true
 mock.setContent("raid", 15, false)
 assertFalse(NoWasteCoin.IsAllowedContent(), "Mythic+ setting does not enable heroic raid")
+assertTrue(ManaTools.DB.Feature2 == feature2, "Mythic+ setting does not replace other DB branches")
 
 -- Lifecycle: absent UI is safe, late UI can be hooked, repeated initialization is idempotent.
 BonusRollFrame = nil
