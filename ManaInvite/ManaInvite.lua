@@ -50,6 +50,7 @@ function ManaInvite:OnWhisper(message, sender)
 end
 
 local eventFrame = CreateFrame("Frame")
+local initialized = false
 
 function ManaInvite:UpdateEvents()
     if db.enabled == true then
@@ -57,6 +58,18 @@ function ManaInvite:UpdateEvents()
     else
         eventFrame:UnregisterEvent("CHAT_MSG_WHISPER")
     end
+end
+
+function ManaInvite:Initialize()
+    if initialized then
+        self:UpdateEvents()
+        return
+    end
+
+    initialized = true
+    eventFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
+    RebuildGuildMembers()
+    self:UpdateEvents()
 end
 
 eventFrame:SetScript("OnEvent", function(_, event, ...)
@@ -72,6 +85,4 @@ ManaInvite.NormalizePlayerName = NormalizePlayerName
 ManaInvite.IsGuildMember = IsGuildMember
 ManaInvite.RebuildGuildMembers = RebuildGuildMembers
 
-eventFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
-RebuildGuildMembers()
-ManaInvite:UpdateEvents()
+ManaInvite:Initialize()
