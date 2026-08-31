@@ -1,9 +1,6 @@
 local ADDON_NAME, ManaTools = ...
 
 local db = ManaTools.DB.CinematicSkip
-if db.enabled == nil then
-    db.enabled = true
-end
 
 local CinematicSkip = ManaTools.CinematicSkip or {}
 ManaTools.CinematicSkip = CinematicSkip
