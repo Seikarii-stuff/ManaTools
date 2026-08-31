@@ -23,11 +23,14 @@ loadFile("Bootstrap.lua", "ManaTools", addonNamespace)
 ManaTools = addonNamespace
 loadFile("NoWasteCoin/NoWasteCoin.lua", "ManaTools", ManaTools)
 loadFile("ManaInvite/ManaInvite.lua", "ManaTools", ManaTools)
+loadFile("CinematicSkip/cinematicskip.lua", "ManaTools", ManaTools)
 
 local noWasteDB = ManaTools.DB.NoWasteCoin
 local NoWasteCoin = ManaTools.NoWasteCoin
 local ManaInvite = ManaTools.ManaInvite
 local inviteDB = ManaTools.DB.ManaInvite
+local CinematicSkip = ManaTools.CinematicSkip
+local cinematicSkipDB = ManaTools.DB.CinematicSkip
 
 local function runTimed(fn, count)
     local start = os.clock()
@@ -147,6 +150,68 @@ for _, size in ipairs({100, 500, 1000}) do
     local elapsed, count = benchmarkRebuild(size)
     appendMetric("RebuildGuildMembers (" .. size .. ")", elapsed, count)
 end
+
+results[#results + 1] = ""
+results[#results + 1] = "CinematicSkip benchmarks"
+results[#results + 1] = "------------------------"
+
+local function benchmarkCinematicStart()
+    cinematicSkipDB.enabled = true
+    CinematicSkip:UpdateEvents()
+    local calls = 0
+    CinematicFrame_CancelCinematic = function() calls = calls + 1 end
+    for _ = 1, warmup do
+        mock.fireEvent("CINEMATIC_START")
+    end
+    calls = 0
+    local elapsed = runTimed(function(count)
+        for _ = 1, count do
+            mock.fireEvent("CINEMATIC_START")
+        end
+    end, iterations)
+    CinematicFrame_CancelCinematic = nil
+    return elapsed
+end
+
+local function benchmarkPlayMovie()
+    cinematicSkipDB.enabled = true
+    CinematicSkip:UpdateEvents()
+    MovieFrame = CreateFrame("Frame")
+    for _ = 1, warmup do
+        MovieFrame:Show()
+        mock.fireEvent("PLAY_MOVIE")
+    end
+    local elapsed = runTimed(function(count)
+        for _ = 1, count do
+            MovieFrame:Show()
+            mock.fireEvent("PLAY_MOVIE")
+        end
+    end, iterations)
+    MovieFrame = nil
+    return elapsed
+end
+
+local function benchmarkTalkingHead()
+    cinematicSkipDB.enabled = true
+    CinematicSkip:UpdateEvents()
+    TalkingHeadFrame = CreateFrame("Frame")
+    for _ = 1, warmup do
+        TalkingHeadFrame:Show()
+        mock.fireEvent("TALKINGHEAD_REQUESTED")
+    end
+    local elapsed = runTimed(function(count)
+        for _ = 1, count do
+            TalkingHeadFrame:Show()
+            mock.fireEvent("TALKINGHEAD_REQUESTED")
+        end
+    end, iterations)
+    TalkingHeadFrame = nil
+    return elapsed
+end
+
+appendMetric("CINEMATIC_START", benchmarkCinematicStart(), iterations)
+appendMetric("PLAY_MOVIE", benchmarkPlayMovie(), iterations)
+appendMetric("TALKINGHEAD_REQUESTED", benchmarkTalkingHead(), iterations)
 
 results[#results + 1] = ""
 results[#results + 1] = "Allocations: NOT AVAILABLE (Lua benchmark environment does not expose a reliable per-call allocation metric)."
