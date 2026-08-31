@@ -91,6 +91,9 @@ function MockWoW.reset(db)
     end
     BonusRollFrame = nil
     BonusRollFrame_StartBonusRoll = nil
+    CinematicFrame_CancelCinematic = nil
+    MovieFrame = nil
+    TalkingHeadFrame = nil
 end
 
 function MockWoW.newBonusRollFrame(usePromptButton)

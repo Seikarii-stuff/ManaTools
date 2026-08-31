@@ -253,7 +253,7 @@ for i = framesBeforeOptions + 1, #mock.createdFrames do
         table.insert(clickFrames, created)
     end
 end
-assertEqual(#clickFrames, 3, "options create the two NoWasteCoin checkboxes and one Mana Invite checkbox")
+assertEqual(#clickFrames, 4, "options create the two NoWasteCoin checkboxes, one Mana Invite checkbox, and one Cinematic Skip checkbox")
 clickFrames[1]:SetChecked(true)
 clickFrames[1]:TriggerScript("OnClick")
 assertTrue(db.allowHeroicRaid, "Heroic option updates central DB")
