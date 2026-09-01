@@ -108,9 +108,13 @@ local function runTest()
     db.enabled = true
     namespace.NoInfo.Update()
     local wrapper2 = GameTooltip:GetScript("OnShow")
-    assert(wrapper2 ~= nil, "reactivation reinstalls wrapper")
-    assert(wrapper2 ~= wrapper, "reactivation creates a fresh wrapper")
+    assert(wrapper2 == wrapper, "reactivation reuses the shared OnShow wrapper")
     assert(button.shown == true, "reactivation shows button")
+
+    GameTooltip.hidden = false
+    wrapper2(GameTooltip)
+    assert(originalShowCount == 3, "reactivated wrapper still calls original OnShow")
+    assert(GameTooltip.hidden == true, "reactivated wrapper still hides generic tooltip")
 
     db.enabled = false
     namespace.NoInfo.Update()
