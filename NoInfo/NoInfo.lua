@@ -8,7 +8,7 @@ local function HideGameTooltip(self)
     if self == GameTooltip then
         local owner = self:GetOwner()
 
-        if owner == GameTimeFrame or owner == MiniMapWorldMapButton then
+        if owner == GameMenuButtonAddons then
             return
         end
     end
