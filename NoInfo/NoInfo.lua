@@ -76,7 +76,6 @@ local function CreateInspectButton()
     button:SetFrameStrata("MEDIUM")
     button:SetFrameLevel(8)
     button:RegisterForClicks("LeftButtonUp")
-    button:SetMovable(true)
     button:EnableMouse(true)
 
     local icon = button:CreateTexture(nil, "ARTWORK")
@@ -91,37 +90,32 @@ local function CreateInspectButton()
     highlight:SetAtlas("talents-search-match", true)
     highlight:SetAlpha(0.35)
 
-    button:SetScript("OnClick", ToggleInspectMode)
-
-    button:SetScript("OnDragStart", function(self)
-        self.dragging = true
-    end)
-
-    button:SetScript("OnDragStop", function(self)
-        self.dragging = false
-        if self.dragStartX and self.dragStartY then
-            local x, y = GetCursorPosition()
-            local scale = UIParent:GetEffectiveScale()
-            x, y = x / scale, y / scale
-            local cx, cy = Minimap:GetCenter()
-            local angle = math.deg(math.atan2(y - cy, x - cx))
-            db.minimapAngle = angle
-            SetMinimapPosition(self, angle)
+    button:SetScript("OnClick", function(self, mouseButton)
+        if mouseButton == "LeftButton" and not self.wasDragging then
+            ToggleInspectMode()
         end
+        self.wasDragging = false
     end)
 
     button:SetScript("OnMouseDown", function(self, mouseButton)
         if mouseButton == "LeftButton" and IsShiftKeyDown() then
-            self.dragStartX, self.dragStartY = GetCursorPosition()
-            self:StartMoving()
+            self.wasDragging = true
         end
     end)
 
     button:SetScript("OnMouseUp", function(self, mouseButton)
-        if self:IsMoving() then
-            self:StopMovingOrSizing()
+        if mouseButton ~= "LeftButton" or not self.wasDragging then
+            return
         end
-        self.dragStartX, self.dragStartY = nil, nil
+
+        local x, y = GetCursorPosition()
+        local scale = UIParent:GetEffectiveScale()
+        x, y = x / scale, y / scale
+        local cx, cy = Minimap:GetCenter()
+        local angle = math.deg(math.atan2(y - cy, x - cx))
+
+        db.minimapAngle = angle
+        SetMinimapPosition(self, angle)
     end)
 
     inspectButton = button
