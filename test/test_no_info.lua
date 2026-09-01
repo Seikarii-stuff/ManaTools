@@ -91,12 +91,18 @@ local function runTest()
 
     assert(button.scripts.OnDragStart ~= nil, "drag start handler exists")
     assert(button.scripts.OnDragStop ~= nil, "drag stop handler exists")
+    button.scripts.OnDragStart(button, "RightButton")
+    assert(button.scripts.OnUpdate == nil, "non-left drag is ignored")
+    assert(button.isMoving ~= true, "non-left drag does not start moving")
+
     button.scripts.OnDragStart(button, "LeftButton")
-    assert(button.scripts.OnUpdate ~= nil, "drag installs temporary OnUpdate")
+    assert(button.scripts.OnUpdate ~= nil, "shift + left drag installs temporary OnUpdate")
+    assert(button.isMoving == true, "shift + left drag enters moving state")
     button.scripts.OnUpdate(button)
     assert(db.minimapAngle == 0, "drag computes the expected angle")
     button.scripts.OnDragStop(button, "LeftButton")
     assert(button.scripts.OnUpdate == nil, "drag removes temporary OnUpdate")
+    assert(button.isMoving == false, "drag clears moving state")
 
     db.enabled = false
     namespace.NoInfo.Update()
