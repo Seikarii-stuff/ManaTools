@@ -2,6 +2,7 @@ local ADDON_NAME, ManaTools = ...
 
 local db = ManaTools.DB.NoInfo
 local hooked = false
+local hookHandler
 
 local function HideGameTooltip(self)
     local tooltipData = self:GetTooltipData()
@@ -21,12 +22,14 @@ local function HideGameTooltip(self)
     self:Hide()
 end
 
+hookHandler = HideGameTooltip
+
 local function Enable()
     if hooked then
         return
     end
 
-    GameTooltip:HookScript("OnShow", HideGameTooltip)
+    GameTooltip:HookScript("OnShow", hookHandler)
     hooked = true
 end
 
@@ -35,7 +38,10 @@ local function Disable()
         return
     end
 
-    GameTooltip:UnhookScript("OnShow", HideGameTooltip)
+    if GameTooltip.UnhookScript then
+        GameTooltip:UnhookScript("OnShow", hookHandler)
+    end
+
     hooked = false
     GameTooltip:Hide()
 end
