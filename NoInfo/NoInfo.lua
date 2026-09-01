@@ -23,11 +23,11 @@ local function HideGameTooltip(self)
 end
 
 local function NoInfoOnShow(self, ...)
-    HideGameTooltip(self)
-
     if originalOnShow then
         originalOnShow(self, ...)
     end
+
+    HideGameTooltip(self)
 end
 
 local function Enable()
