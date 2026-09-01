@@ -22,6 +22,7 @@ local function newFrame()
     function frame:SetShown(value) self.shown = value end
     function frame:SetAlpha(value) self.alpha = value end
     function frame:GetCenter() return 500, 500 end
+    function frame:GetEffectiveScale() return 1 end
     function frame:GetWidth() return 100 end
     function frame:CreateTexture()
         local texture = newFrame()
@@ -47,7 +48,6 @@ local function runTest()
     Enum = { TooltipDataType = { Item = 0 } }
     GetCursorPosition = function() return 600, 500 end
     UIParent = newFrame()
-    function UIParent:GetEffectiveScale() return 1 end
     IsShiftKeyDown = function() return true end
 
     local db = { enabled = true }
@@ -89,15 +89,13 @@ local function runTest()
     button.scripts.OnClick(button, "LeftButton")
     assert(db.inspectMode == false, "second left click disables inspect mode")
 
-    -- The implementation uses WoW's standard drag callbacks. Shift is required by
-    -- the real handler; the test explicitly verifies the registration and lifecycle.
     assert(button.scripts.OnDragStart ~= nil, "drag start handler exists")
     assert(button.scripts.OnDragStop ~= nil, "drag stop handler exists")
-    button.scripts.OnDragStart(button)
+    button.scripts.OnDragStart(button, "LeftButton")
     assert(button.scripts.OnUpdate ~= nil, "drag installs temporary OnUpdate")
     button.scripts.OnUpdate(button)
     assert(db.minimapAngle == 0, "drag computes the expected angle")
-    button.scripts.OnDragStop(button)
+    button.scripts.OnDragStop(button, "LeftButton")
     assert(button.scripts.OnUpdate == nil, "drag removes temporary OnUpdate")
 
     db.enabled = false
