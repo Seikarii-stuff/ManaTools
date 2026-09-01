@@ -3,6 +3,7 @@ local ADDON_NAME, ManaTools = ...
 local db = ManaTools.DB.NoWasteCoin
 local manaInviteDB = ManaTools.DB.ManaInvite
 local cinematicSkipDB = ManaTools.DB.CinematicSkip
+local noInfoDB = ManaTools.DB.NoInfo
 
 local function Refresh()
     ManaTools.NoWasteCoin.Update()
@@ -64,11 +65,24 @@ cinematicSkip:SetScript("OnClick", function(self)
     ManaTools.CinematicSkip:UpdateEvents()
 end)
 
+local noInfoTitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+noInfoTitle:SetPoint("TOPLEFT", cinematicSkip, "BOTTOMLEFT", 0, -18)
+noInfoTitle:SetText("NoInfo")
+
+local noInfo = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+noInfo:SetPoint("TOPLEFT", noInfoTitle, "BOTTOMLEFT", 0, -8)
+noInfo.Text:SetText("Hide unnecessary tooltips")
+noInfo:SetScript("OnClick", function(self)
+    noInfoDB.enabled = self:GetChecked() == true
+    ManaTools.NoInfo.Update()
+end)
+
 panel:SetScript("OnShow", function()
     heroic:SetChecked(db.allowHeroicRaid)
     mythicPlus:SetChecked(db.allowMythicPlus)
     invite:SetChecked(manaInviteDB.enabled)
     cinematicSkip:SetChecked(cinematicSkipDB.enabled)
+    noInfo:SetChecked(noInfoDB.enabled)
 end)
 
 if Settings and Settings.RegisterCanvasLayoutCategory then
