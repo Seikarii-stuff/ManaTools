@@ -1,34 +1,34 @@
 ManaTools benchmark results
 ===========================
-Generated: 2026-09-01 07:57:34 UTC
+Generated: 2026-09-01 08:14:45 UTC
 Iterations per hot path: 100000
 Warmup per hot path: 10000
 
 NoWasteCoin Mythic raid                  0.033000 s       3030303 calls/s         0.330 us/call
-NoWasteCoin Heroic raid                  0.038000 s       2631579 calls/s         0.380 us/call
-NoWasteCoin Mythic+                      0.053000 s       1886792 calls/s         0.530 us/call
-NoWasteCoin Mythic 0                     0.053000 s       1886792 calls/s         0.530 us/call
-NoWasteCoin Open world                   0.021000 s       4761905 calls/s         0.210 us/call
+NoWasteCoin Heroic raid                  0.037000 s       2702703 calls/s         0.370 us/call
+NoWasteCoin Mythic+                      0.051000 s       1960784 calls/s         0.510 us/call
+NoWasteCoin Mythic 0                     0.052000 s       1923077 calls/s         0.520 us/call
+NoWasteCoin Open world                   0.019000 s       5263158 calls/s         0.190 us/call
 
 ManaInvite benchmarks
 --------------------
-IsGuildMember (100)                      0.030000 s       3333333 calls/s         0.300 us/call
+IsGuildMember (100)                      0.032000 s       3125000 calls/s         0.320 us/call
 OnWhisper                                0.096000 s       1041667 calls/s         0.960 us/call
-RebuildGuildMembers (100)                0.042000 s         23810 calls/s        42.000 us/call
-RebuildGuildMembers (500)                0.208000 s          4808 calls/s       208.000 us/call
-RebuildGuildMembers (1000)               0.424000 s          2358 calls/s       424.000 us/call
+RebuildGuildMembers (100)                0.041000 s         24390 calls/s        41.000 us/call
+RebuildGuildMembers (500)                0.210000 s          4762 calls/s       210.000 us/call
+RebuildGuildMembers (1000)               0.423000 s          2364 calls/s       423.000 us/call
 
 CinematicSkip benchmarks
 ------------------------
-CINEMATIC_START                          0.055000 s       1818182 calls/s         0.550 us/call
-PLAY_MOVIE                               0.160000 s        625000 calls/s         1.600 us/call
-TALKINGHEAD_REQUESTED                    0.161000 s        621118 calls/s         1.610 us/call
+CINEMATIC_START                          0.054000 s       1851852 calls/s         0.540 us/call
+PLAY_MOVIE                               0.159000 s        628931 calls/s         1.590 us/call
+TALKINGHEAD_REQUESTED                    0.160000 s        625000 calls/s         1.600 us/call
 
 NoInfo benchmarks
 ----------------
-NoInfo enabled: generic tooltip          0.098000 s       1020408 calls/s         0.980 us/call
-NoInfo enabled: item tooltip             0.032000 s       3125000 calls/s         0.320 us/call
-NoInfo enabled: inspect mode             0.019000 s       5263158 calls/s         0.190 us/call
+NoInfo enabled: generic tooltip          0.100000 s       1000000 calls/s         1.000 us/call
+NoInfo enabled: item tooltip             0.034000 s       2941176 calls/s         0.340 us/call
+NoInfo enabled: inspect mode             0.021000 s       4761905 calls/s         0.210 us/call
 NoInfo disabled: original OnShow         0.007000 s      14285714 calls/s         0.070 us/call
 
 Allocations: NOT AVAILABLE (Lua benchmark environment does not expose a reliable per-call allocation metric).

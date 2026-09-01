@@ -35,7 +35,7 @@ end)
 
 local mythicPlus = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
 mythicPlus:SetPoint("TOPLEFT", heroic, "BOTTOMLEFT", 0, -8)
-mythicPlus.Text:SetText("Permitir Bonus Roll en Mítico+")
+mythicPlus.Text:SetText("Permitir Bonus Roll en Mythic+")
 mythicPlus:SetScript("OnClick", function(self)
     db.allowMythicPlus = self:GetChecked()
     Refresh()
