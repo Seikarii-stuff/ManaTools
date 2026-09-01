@@ -3,16 +3,12 @@
 -- Run from repository root: lua test/test_no_info.lua
 
 local loader = loadstring or load
-local script = assert(io.open("NoInfo/NoInfo.lua", "r")):read("*a")
+local file = assert(io.open("NoInfo/NoInfo.lua", "r"))
+local script = file:read("*a")
+file:close()
 
 local function newFrame()
-    local frame = {
-        scripts = {},
-        shown = true,
-        alpha = 1,
-        atlas = nil,
-        size = {},
-    }
+    local frame = { scripts = {}, shown = true, alpha = 1, size = {} }
 
     function frame:GetScript(event) return self.scripts[event] end
     function frame:SetScript(event, callback) self.scripts[event] = callback end
@@ -41,14 +37,16 @@ local function runTest()
     function tooltip:Hide() self.hidden = true end
 
     local originalShowCount = 0
-    tooltip:SetScript("OnShow", function()
+    local originalOnShow = function()
         originalShowCount = originalShowCount + 1
-    end)
+    end
+    tooltip:SetScript("OnShow", originalOnShow)
 
     GameTooltip = tooltip
     Minimap = newFrame()
     MainMenuMicroButton = newFrame()
     Enum = { TooltipDataType = { Item = 0 } }
+    _G.ManaToolsNoInfoInspectButton = nil
 
     local db = { enabled = true }
     local namespace = { DB = { NoInfo = db }, NoInfo = {} }
@@ -56,10 +54,11 @@ local function runTest()
     function CreateFrame(_, name)
         local frame = newFrame()
         frame.name = name
+        _G[name] = frame
         return frame
     end
 
-    assert(loadstring or load)(script, "NoInfo/NoInfo.lua")("ManaTools", namespace)
+    assert((loader or load)(script, "NoInfo/NoInfo.lua"))("ManaTools", namespace)
 
     assert(namespace.NoInfo.Update, "NoInfo.Update exists")
     assert(db.inspectMode == false, "inspect mode starts disabled")
@@ -70,29 +69,39 @@ local function runTest()
     assert(originalShowCount == 1, "original tooltip OnShow still runs")
     assert(GameTooltip.hidden == true, "normal tooltip is hidden while inspect mode is off")
 
-    assert(namespace.NoInfoTests == nil, "NoInfo does not expose test-only state")
+    local button = _G.ManaToolsNoInfoInspectButton
+    assert(button ~= nil, "inspect button is created")
+    assert(button.shown == true, "inspect button is shown while NoInfo is enabled")
+    assert(button.point[2] == Minimap, "inspect button is anchored to Minimap")
+    assert(button.icon.atlas == "talents-search-match", "inspect button uses Blizzard search/magnifier atlas")
 
-    local button = _G and _G.ManaToolsNoInfoInspectButton
-    -- CreateFrame is stubbed without a global registry, so locate the button via
-    -- the local behavior by recreating the expected click callback from the frame
-    -- returned by CreateFrame in this test is intentionally avoided here.
-    -- The public behavior is verified through the DB flag and Update lifecycle below.
+    -- Simulate the left-click on the real button.
+    button.scripts.OnClick(button, "LeftButton")
+    assert(db.inspectMode == true, "left click enables inspect mode")
+    assert(button.alpha == 1, "inspect button is highlighted while active")
 
-    db.inspectMode = true
+    GameTooltip.hidden = false
     wrapper(GameTooltip)
-    assert(originalShowCount == 2, "original tooltip OnShow runs in inspect mode")
-    assert(GameTooltip.hidden == true, "existing hidden state is not changed by wrapper in inspect mode")
+    assert(originalShowCount == 2, "original tooltip OnShow still runs in inspect mode")
+    assert(GameTooltip.hidden == false, "inspect mode allows normal tooltips")
+
+    -- Clicking again returns to suppression.
+    button.scripts.OnClick(button, "LeftButton")
+    assert(db.inspectMode == false, "second left click disables inspect mode")
+    assert(button.alpha == 0.55, "inspect button is dimmed while inactive")
 
     db.enabled = false
     namespace.NoInfo.Update()
-    assert(GameTooltip:GetScript("OnShow") ~= wrapper, "disabling restores the original OnShow")
+    assert(GameTooltip:GetScript("OnShow") == originalOnShow, "disabling restores the original OnShow")
     assert(db.inspectMode == false, "disabling clears inspect mode")
+    assert(button.shown == false, "inspect button is hidden while NoInfo is disabled")
 
     db.enabled = true
     namespace.NoInfo.Update()
     local wrapper2 = GameTooltip:GetScript("OnShow")
     assert(wrapper2 ~= nil, "reactivating reinstalls the wrapper")
     assert(wrapper2 ~= wrapper, "reactivation creates a fresh wrapper")
+    assert(button.shown == true, "reactivating shows the inspect button")
 
     print("NoInfo tests passed")
 end
