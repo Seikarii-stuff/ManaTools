@@ -8,7 +8,7 @@ local function HideGameTooltip(self)
     if self == GameTooltip then
         local owner = self:GetOwner()
 
-        if owner == GameMenuButtonAddons then
+        if owner == MainMenuMicroButton then
             return
         end
     end
