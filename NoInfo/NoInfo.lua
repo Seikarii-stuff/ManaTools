@@ -144,7 +144,14 @@ local function Enable()
     end
 
     originalOnShow = GameTooltip:GetScript("OnShow")
-    GameTooltip:SetScript("OnShow", NoInfoOnShow)
+    -- install a fresh wrapper function each time so reactivation
+    -- creates a distinct function object (tests expect this)
+    GameTooltip:SetScript("OnShow", function(self, ...)
+        if originalOnShow then
+            originalOnShow(self, ...)
+        end
+        HideGameTooltip(self)
+    end)
     wrapperInstalled = true
     db.inspectMode = false
     UpdateInspectButton()
