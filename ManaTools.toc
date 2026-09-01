@@ -10,5 +10,7 @@ Bootstrap.lua
 NoWasteCoin\NoWasteCoin.lua
 ManaInvite\ManaInvite.lua
 CinematicSkip\cinematicskip.lua
+NoInfo\NoInfo.lua
 Options.lua
 SlashCmd.lua
+

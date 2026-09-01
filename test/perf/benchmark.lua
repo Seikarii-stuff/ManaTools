@@ -38,6 +38,11 @@ local function runTimed(fn, count)
     return os.clock() - start
 end
 
+local function appendMetric(results, name, elapsed, count)
+    local rate = elapsed > 0 and count / elapsed or math.huge
+    results[#results + 1] = string.format("%-38s %10.6f s  %12.0f calls/s  %12.3f us/call", name, elapsed, rate, elapsed * 1000000 / count)
+end
+
 local cases = {
     { name = "Mythic raid", type = "raid", difficulty = 16, challenge = false, heroic = false, mythicPlus = false },
     { name = "Heroic raid", type = "raid", difficulty = 15, challenge = false, heroic = true, mythicPlus = false },
@@ -58,41 +63,23 @@ local results = {
 for _, case in ipairs(cases) do
     noWasteDB.allowHeroicRaid = case.heroic
     noWasteDB.allowMythicPlus = case.mythicPlus
-    if case.type then
-        mock.setContent(case.type, case.difficulty, case.challenge)
-    else
-        mock.setWorld()
-    end
-
-    local allowed
-    for _ = 1, warmup do
-        allowed = NoWasteCoin.IsAllowedContent()
-    end
-    local start = os.clock()
-    for _ = 1, iterations do
-        allowed = NoWasteCoin.IsAllowedContent()
-    end
-    local elapsed = os.clock() - start
-    local rate = elapsed > 0 and iterations / elapsed or math.huge
-    results[#results + 1] = string.format("%-16s %10.6f s  %12.0f calls/s  result=%s", case.name, elapsed, rate, tostring(allowed))
+    if case.type then mock.setContent(case.type, case.difficulty, case.challenge) else mock.setWorld() end
+    for _ = 1, warmup do NoWasteCoin.IsAllowedContent() end
+    local elapsed = runTimed(function(count)
+        for _ = 1, count do NoWasteCoin.IsAllowedContent() end
+    end, iterations)
+    appendMetric(results, "NoWasteCoin " .. case.name, elapsed, iterations)
 end
 
 local function benchmarkMembership(size)
     local members = {}
-    for i = 1, size do
-        members[#members + 1] = "Guild" .. i .. "-Realm"
-    end
+    for i = 1, size do members[#members + 1] = "Guild" .. i .. "-Realm" end
     mock.setGuildMembers(unpackValues(members))
     ManaInvite:RebuildGuildMembers()
-
     local target = "Guild" .. size .. "-Realm"
-    for _ = 1, warmup do
-        ManaInvite.IsGuildMember(target)
-    end
+    for _ = 1, warmup do ManaInvite.IsGuildMember(target) end
     return runTimed(function(count)
-        for _ = 1, count do
-            ManaInvite.IsGuildMember(target)
-        end
+        for _ = 1, count do ManaInvite.IsGuildMember(target) end
     end, iterations)
 end
 
@@ -100,8 +87,6 @@ local function benchmarkWhispers()
     mock.setGuildMembers("Guild1-Realm", "Guild2-Realm", "Guild3-Realm", "Guild4-Realm")
     ManaInvite:RebuildGuildMembers()
     inviteDB.enabled = true
-    mock.clearInvites()
-
     local messages = { "mana", "mana pls", "give mana", "MANA", "" }
     local senders = { "Guild1-Realm", "Guild2-Realm", "NotGuild-Realm", "Guild3-Realm", "NotGuild-Realm" }
     local length = #messages
@@ -120,35 +105,24 @@ end
 
 local function benchmarkRebuild(size)
     local members = {}
-    for i = 1, size do
-        members[#members + 1] = "Guild" .. i .. "-Realm"
-    end
+    for i = 1, size do members[#members + 1] = "Guild" .. i .. "-Realm" end
     mock.setGuildMembers(unpackValues(members))
-    for _ = 1, warmup do
-        ManaInvite:RebuildGuildMembers()
-    end
+    for _ = 1, warmup do ManaInvite:RebuildGuildMembers() end
     local count = math.max(1, math.floor(iterations / 100))
     local elapsed = runTimed(function(rebuildCount)
-        for _ = 1, rebuildCount do
-            ManaInvite:RebuildGuildMembers()
-        end
+        for _ = 1, rebuildCount do ManaInvite:RebuildGuildMembers() end
     end, count)
     return elapsed, count
-end
-
-local function appendMetric(name, elapsed, count)
-    local rate = elapsed > 0 and count / elapsed or math.huge
-    results[#results + 1] = string.format("%-28s %10.6f s  %12.0f calls/s  %12.3f us/call", name, elapsed, rate, elapsed * 1000000 / count)
 end
 
 results[#results + 1] = ""
 results[#results + 1] = "ManaInvite benchmarks"
 results[#results + 1] = "--------------------"
-appendMetric("IsGuildMember (100)", benchmarkMembership(100), iterations)
-appendMetric("OnWhisper", benchmarkWhispers(), iterations)
+appendMetric(results, "IsGuildMember (100)", benchmarkMembership(100), iterations)
+appendMetric(results, "OnWhisper", benchmarkWhispers(), iterations)
 for _, size in ipairs({100, 500, 1000}) do
     local elapsed, count = benchmarkRebuild(size)
-    appendMetric("RebuildGuildMembers (" .. size .. ")", elapsed, count)
+    appendMetric(results, "RebuildGuildMembers (" .. size .. ")", elapsed, count)
 end
 
 results[#results + 1] = ""
@@ -160,14 +134,10 @@ local function benchmarkCinematicStart()
     CinematicSkip:UpdateEvents()
     local calls = 0
     CinematicFrame_CancelCinematic = function() calls = calls + 1 end
-    for _ = 1, warmup do
-        mock.fireEvent("CINEMATIC_START")
-    end
+    for _ = 1, warmup do mock.fireEvent("CINEMATIC_START") end
     calls = 0
     local elapsed = runTimed(function(count)
-        for _ = 1, count do
-            mock.fireEvent("CINEMATIC_START")
-        end
+        for _ = 1, count do mock.fireEvent("CINEMATIC_START") end
     end, iterations)
     CinematicFrame_CancelCinematic = nil
     return elapsed
@@ -177,15 +147,9 @@ local function benchmarkPlayMovie()
     cinematicSkipDB.enabled = true
     CinematicSkip:UpdateEvents()
     MovieFrame = CreateFrame("Frame")
-    for _ = 1, warmup do
-        MovieFrame:Show()
-        mock.fireEvent("PLAY_MOVIE")
-    end
+    for _ = 1, warmup do MovieFrame:Show(); mock.fireEvent("PLAY_MOVIE") end
     local elapsed = runTimed(function(count)
-        for _ = 1, count do
-            MovieFrame:Show()
-            mock.fireEvent("PLAY_MOVIE")
-        end
+        for _ = 1, count do MovieFrame:Show(); mock.fireEvent("PLAY_MOVIE") end
     end, iterations)
     MovieFrame = nil
     return elapsed
@@ -195,23 +159,69 @@ local function benchmarkTalkingHead()
     cinematicSkipDB.enabled = true
     CinematicSkip:UpdateEvents()
     TalkingHeadFrame = CreateFrame("Frame")
-    for _ = 1, warmup do
-        TalkingHeadFrame:Show()
-        mock.fireEvent("TALKINGHEAD_REQUESTED")
-    end
+    for _ = 1, warmup do TalkingHeadFrame:Show(); mock.fireEvent("TALKINGHEAD_REQUESTED") end
     local elapsed = runTimed(function(count)
-        for _ = 1, count do
-            TalkingHeadFrame:Show()
-            mock.fireEvent("TALKINGHEAD_REQUESTED")
-        end
+        for _ = 1, count do TalkingHeadFrame:Show(); mock.fireEvent("TALKINGHEAD_REQUESTED") end
     end, iterations)
     TalkingHeadFrame = nil
     return elapsed
 end
 
-appendMetric("CINEMATIC_START", benchmarkCinematicStart(), iterations)
-appendMetric("PLAY_MOVIE", benchmarkPlayMovie(), iterations)
-appendMetric("TALKINGHEAD_REQUESTED", benchmarkTalkingHead(), iterations)
+appendMetric(results, "CINEMATIC_START", benchmarkCinematicStart(), iterations)
+appendMetric(results, "PLAY_MOVIE", benchmarkPlayMovie(), iterations)
+appendMetric(results, "TALKINGHEAD_REQUESTED", benchmarkTalkingHead(), iterations)
+
+results[#results + 1] = ""
+results[#results + 1] = "NoInfo benchmarks"
+results[#results + 1] = "----------------"
+
+-- Give NoInfo a real original OnShow handler so its disabled path is measurable.
+GameTooltip = CreateFrame("GameTooltip")
+local originalTooltipOnShowCalls = 0
+local originalTooltipOnShow = function() originalTooltipOnShowCalls = originalTooltipOnShowCalls + 1 end
+GameTooltip:SetScript("OnShow", originalTooltipOnShow)
+function GameTooltip:GetTooltipData() return self.tooltipData end
+function GameTooltip:GetOwner() return self.tooltipOwner end
+Minimap = CreateFrame("Frame")
+MainMenuMicroButton = CreateFrame("Button")
+UIParent = CreateFrame("Frame")
+Enum = { TooltipDataType = { Item = 0 } }
+
+loadFile("NoInfo/NoInfo.lua", "ManaTools", ManaTools)
+local noInfoDB = ManaTools.DB.NoInfo
+local NoInfo = ManaTools.NoInfo
+
+local itemData = { type = Enum.TooltipDataType.Item }
+local genericData = { type = 999 }
+
+local function benchmarkNoInfoState(name, enabled, inspectMode, data, owner)
+    noInfoDB.enabled = enabled
+    noInfoDB.inspectMode = inspectMode
+    GameTooltip.tooltipData = data
+    GameTooltip.tooltipOwner = owner
+    NoInfo.Update()
+    local handler = GameTooltip:GetScript("OnShow")
+    assert(handler, "NoInfo benchmark requires an OnShow handler: " .. name)
+    for _ = 1, warmup do handler(GameTooltip) end
+    local elapsed = runTimed(function(count)
+        for _ = 1, count do handler(GameTooltip) end
+    end, iterations)
+    appendMetric(results, name, elapsed, iterations)
+end
+
+benchmarkNoInfoState("NoInfo enabled: generic tooltip", true, false, genericData, nil)
+benchmarkNoInfoState("NoInfo enabled: item tooltip", true, false, itemData, nil)
+benchmarkNoInfoState("NoInfo enabled: inspect mode", true, true, genericData, nil)
+
+noInfoDB.enabled = false
+noInfoDB.inspectMode = false
+NoInfo.Update()
+local disabledHandler = GameTooltip:GetScript("OnShow")
+assert(disabledHandler == originalTooltipOnShow, "NoInfo disabled path must restore the original OnShow")
+for _ = 1, warmup do disabledHandler(GameTooltip) end
+appendMetric(results, "NoInfo disabled: original OnShow", runTimed(function(count)
+    for _ = 1, count do disabledHandler(GameTooltip) end
+end, iterations), iterations)
 
 results[#results + 1] = ""
 results[#results + 1] = "Allocations: NOT AVAILABLE (Lua benchmark environment does not expose a reliable per-call allocation metric)."
