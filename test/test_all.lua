@@ -18,7 +18,8 @@ local noWastePassed = execute("lua test/test_no_waste_coin_behavior.lua")
 local manaInvitePassed = execute("lua test/test_mana_invite.lua")
 local manaCoinPassed = execute("lua test/test_mana_coin.lua")
 local cinematicSkipPassed = execute("lua test/test_cinematic_skip.lua")
-local testsPassed = noWastePassed and manaInvitePassed and manaCoinPassed and cinematicSkipPassed
+local noInfoPassed = execute("lua test/test_no_info.lua")
+local testsPassed = noWastePassed and manaInvitePassed and manaCoinPassed and cinematicSkipPassed and noInfoPassed
 if not testsPassed then
     print("TESTS: FAIL")
     print("One or more test commands failed. Review the failure output above.")
@@ -42,6 +43,7 @@ print("NoWasteCoin tests: " .. (noWastePassed and "PASS" or "FAIL"))
 print("ManaInvite tests: " .. (manaInvitePassed and "PASS" or "FAIL"))
 print("Mana coin tests: " .. (manaCoinPassed and "PASS" or "FAIL"))
 print("CinematicSkip tests: " .. (cinematicSkipPassed and "PASS" or "FAIL"))
+print("NoInfo tests: " .. (noInfoPassed and "PASS" or "FAIL"))
 print("Tests: " .. (testsPassed and "PASS" or "FAIL"))
 print("Benchmark: " .. (benchmarkPassed and "PASS" or "FAIL"))
 print("Benchmark results: test/results/benchmark.txt")
