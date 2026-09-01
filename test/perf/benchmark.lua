@@ -38,6 +38,11 @@ local function runTimed(fn, count)
     return os.clock() - start
 end
 
+local function appendMetric(results, name, elapsed, count)
+    local rate = elapsed > 0 and count / elapsed or math.huge
+    results[#results + 1] = string.format("%-32s %10.6f s  %12.0f calls/s  %12.3f us/call", name, elapsed, rate, elapsed * 1000000 / count)
+end
+
 local cases = {
     { name = "Mythic raid", type = "raid", difficulty = 16, challenge = false, heroic = false, mythicPlus = false },
     { name = "Heroic raid", type = "raid", difficulty = 15, challenge = false, heroic = true, mythicPlus = false },
@@ -68,13 +73,12 @@ for _, case in ipairs(cases) do
     for _ = 1, warmup do
         allowed = NoWasteCoin.IsAllowedContent()
     end
-    local start = os.clock()
+    local elapsed = os.clock()
     for _ = 1, iterations do
         allowed = NoWasteCoin.IsAllowedContent()
     end
-    local elapsed = os.clock() - start
-    local rate = elapsed > 0 and iterations / elapsed or math.huge
-    results[#results + 1] = string.format("%-16s %10.6f s  %12.0f calls/s  result=%s", case.name, elapsed, rate, tostring(allowed))
+    elapsed = os.clock() - elapsed
+    appendMetric(results, "NoWasteCoin " .. case.name, elapsed, iterations)
 end
 
 local function benchmarkMembership(size)
@@ -136,19 +140,14 @@ local function benchmarkRebuild(size)
     return elapsed, count
 end
 
-local function appendMetric(name, elapsed, count)
-    local rate = elapsed > 0 and count / elapsed or math.huge
-    results[#results + 1] = string.format("%-28s %10.6f s  %12.0f calls/s  %12.3f us/call", name, elapsed, rate, elapsed * 1000000 / count)
-end
-
 results[#results + 1] = ""
 results[#results + 1] = "ManaInvite benchmarks"
 results[#results + 1] = "--------------------"
-appendMetric("IsGuildMember (100)", benchmarkMembership(100), iterations)
-appendMetric("OnWhisper", benchmarkWhispers(), iterations)
+appendMetric(results, "IsGuildMember (100)", benchmarkMembership(100), iterations)
+appendMetric(results, "OnWhisper", benchmarkWhispers(), iterations)
 for _, size in ipairs({100, 500, 1000}) do
     local elapsed, count = benchmarkRebuild(size)
-    appendMetric("RebuildGuildMembers (" .. size .. ")", elapsed, count)
+    appendMetric(results, "RebuildGuildMembers (" .. size .. ")", elapsed, count)
 end
 
 results[#results + 1] = ""
@@ -209,9 +208,69 @@ local function benchmarkTalkingHead()
     return elapsed
 end
 
-appendMetric("CINEMATIC_START", benchmarkCinematicStart(), iterations)
-appendMetric("PLAY_MOVIE", benchmarkPlayMovie(), iterations)
-appendMetric("TALKINGHEAD_REQUESTED", benchmarkTalkingHead(), iterations)
+appendMetric(results, "CINEMATIC_START", benchmarkCinematicStart(), iterations)
+appendMetric(results, "PLAY_MOVIE", benchmarkPlayMovie(), iterations)
+appendMetric(results, "TALKINGHEAD_REQUESTED", benchmarkTalkingHead(), iterations)
+
+results[#results + 1] = ""
+results[#results + 1] = "NoInfo benchmarks"
+results[#results + 1] = "----------------"
+
+-- Load NoInfo after the other modules so its frame globals can be mocked locally.
+GameTooltip = CreateFrame("GameTooltip")
+function GameTooltip:GetTooltipData() return self.tooltipData end
+function GameTooltip:GetOwner() return self.tooltipOwner end
+Minimap = CreateFrame("Frame")
+function Minimap:GetCenter() return 500, 500 end
+function Minimap:GetWidth() return 100 end
+MainMenuMicroButton = CreateFrame("Button")
+UIParent = CreateFrame("Frame")
+function UIParent:GetEffectiveScale() return 1 end
+Enum = { TooltipDataType = { Item = 0 } }
+
+loadFile("NoInfo/NoInfo.lua", "ManaTools", ManaTools)
+local noInfoDB = ManaTools.DB.NoInfo
+local NoInfo = ManaTools.NoInfo
+local noInfoWrapper = GameTooltip:GetScript("OnShow")
+
+local itemData = { type = Enum.TooltipDataType.Item }
+local genericData = { type = 999 }
+
+local function benchmarkNoInfoState(name, enabled, inspectMode, data, owner)
+    noInfoDB.enabled = enabled
+    noInfoDB.inspectMode = inspectMode
+    GameTooltip.tooltipData = data
+    GameTooltip.tooltipOwner = owner
+    NoInfo.Update()
+    local handler = GameTooltip:GetScript("OnShow")
+    for _ = 1, warmup do
+        handler(GameTooltip)
+    end
+    local elapsed = runTimed(function(count)
+        for _ = 1, count do
+            handler(GameTooltip)
+        end
+    end, iterations)
+    appendMetric(results, name, elapsed, iterations)
+end
+
+benchmarkNoInfoState("NoInfo enabled: generic tooltip", true, false, genericData, nil)
+benchmarkNoInfoState("NoInfo enabled: item tooltip", true, false, itemData, nil)
+benchmarkNoInfoState("NoInfo enabled: inspect mode", true, true, genericData, nil)
+
+-- Disabled state: measure the actual Blizzard handler path. NoInfo must not wrap it.
+noInfoDB.enabled = false
+noInfoDB.inspectMode = false
+NoInfo.Update()
+local disabledHandler = GameTooltip:GetScript("OnShow")
+for _ = 1, warmup do
+    disabledHandler(GameTooltip)
+end
+appendMetric(results, "NoInfo disabled: original OnShow", runTimed(function(count)
+    for _ = 1, count do
+        disabledHandler(GameTooltip)
+    end
+end, iterations), iterations)
 
 results[#results + 1] = ""
 results[#results + 1] = "Allocations: NOT AVAILABLE (Lua benchmark environment does not expose a reliable per-call allocation metric)."
