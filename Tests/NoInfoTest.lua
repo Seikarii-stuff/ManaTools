@@ -24,6 +24,8 @@ function Tests.Run()
     local tooltip = GameTooltip
     local oldGetScript = tooltip.GetScript
     local oldSetScript = tooltip.SetScript
+    local oldGetTooltipData = tooltip.GetTooltipData
+    local oldGetOwner = tooltip.GetOwner
     local oldHide = tooltip.Hide
     local original = function() end
     local current = original
@@ -38,6 +40,12 @@ function Tests.Run()
         Assert("SetScript requests OnShow", scriptType == "OnShow")
         current = handler
         setCount = setCount + 1
+    end
+    tooltip.GetTooltipData = function()
+        return { type = -1 }
+    end
+    tooltip.GetOwner = function()
+        return nil
     end
     tooltip.Hide = function()
         hidden = true
@@ -76,6 +84,8 @@ function Tests.Run()
 
     tooltip.GetScript = oldGetScript
     tooltip.SetScript = oldSetScript
+    tooltip.GetTooltipData = oldGetTooltipData
+    tooltip.GetOwner = oldGetOwner
     tooltip.Hide = oldHide
 
     ManaTools.DB.NoInfo.enabled = true
