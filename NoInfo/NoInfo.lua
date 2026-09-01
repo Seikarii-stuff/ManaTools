@@ -68,7 +68,7 @@ local function CreateInspectButton()
 
     local button = CreateFrame("Button", "ManaToolsNoInfoInspectButton", Minimap)
     button:SetSize(30, 30)
-    button:SetFrameStrata("MEDIUM")
+    button:SetFrameStrata("HIGH")
     button:SetFrameLevel(8)
     button:RegisterForClicks("LeftButtonUp")
     button:EnableMouse(true)
