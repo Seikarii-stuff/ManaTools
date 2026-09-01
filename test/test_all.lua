@@ -14,7 +14,7 @@ local function execute(command)
 end
 
 print("=== ManaTools test suite ===")
-local noWastePassed = execute("lua test/test_no_waste_coin.lua")
+local noWastePassed = execute("lua test/test_no_waste_coin_behavior.lua")
 local manaInvitePassed = execute("lua test/test_mana_invite.lua")
 local manaCoinPassed = execute("lua test/test_mana_coin.lua")
 local cinematicSkipPassed = execute("lua test/test_cinematic_skip.lua")
