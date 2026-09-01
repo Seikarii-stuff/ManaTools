@@ -15,9 +15,6 @@ end
 if ManaTools.DB.NoInfo.enabled == nil then
     ManaTools.DB.NoInfo.enabled = true
 end
-if ManaTools.DB.NoInfo.minimapAngle == nil then
-    ManaTools.DB.NoInfo.minimapAngle = 225
-end
 ManaTools.NoWasteCoin = ManaTools.NoWasteCoin or {}
 ManaTools.ManaInvite = ManaTools.ManaInvite or {}
 ManaTools.CinematicSkip = ManaTools.CinematicSkip or {}
