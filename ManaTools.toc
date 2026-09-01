@@ -13,4 +13,4 @@ CinematicSkip\cinematicskip.lua
 NoInfo\NoInfo.lua
 Options.lua
 SlashCmd.lua
-Tests\NoInfoTest.lua
+
