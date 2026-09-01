@@ -40,7 +40,7 @@ end
 
 local function appendMetric(results, name, elapsed, count)
     local rate = elapsed > 0 and count / elapsed or math.huge
-    results[#results + 1] = string.format("%-32s %10.6f s  %12.0f calls/s  %12.3f us/call", name, elapsed, rate, elapsed * 1000000 / count)
+    results[#results + 1] = string.format("%-38s %10.6f s  %12.0f calls/s  %12.3f us/call", name, elapsed, rate, elapsed * 1000000 / count)
 end
 
 local cases = {
@@ -63,40 +63,23 @@ local results = {
 for _, case in ipairs(cases) do
     noWasteDB.allowHeroicRaid = case.heroic
     noWasteDB.allowMythicPlus = case.mythicPlus
-    if case.type then
-        mock.setContent(case.type, case.difficulty, case.challenge)
-    else
-        mock.setWorld()
-    end
-
-    local allowed
-    for _ = 1, warmup do
-        allowed = NoWasteCoin.IsAllowedContent()
-    end
-    local elapsed = os.clock()
-    for _ = 1, iterations do
-        allowed = NoWasteCoin.IsAllowedContent()
-    end
-    elapsed = os.clock() - elapsed
+    if case.type then mock.setContent(case.type, case.difficulty, case.challenge) else mock.setWorld() end
+    for _ = 1, warmup do NoWasteCoin.IsAllowedContent() end
+    local elapsed = runTimed(function(count)
+        for _ = 1, count do NoWasteCoin.IsAllowedContent() end
+    end, iterations)
     appendMetric(results, "NoWasteCoin " .. case.name, elapsed, iterations)
 end
 
 local function benchmarkMembership(size)
     local members = {}
-    for i = 1, size do
-        members[#members + 1] = "Guild" .. i .. "-Realm"
-    end
+    for i = 1, size do members[#members + 1] = "Guild" .. i .. "-Realm" end
     mock.setGuildMembers(unpackValues(members))
     ManaInvite:RebuildGuildMembers()
-
     local target = "Guild" .. size .. "-Realm"
-    for _ = 1, warmup do
-        ManaInvite.IsGuildMember(target)
-    end
+    for _ = 1, warmup do ManaInvite.IsGuildMember(target) end
     return runTimed(function(count)
-        for _ = 1, count do
-            ManaInvite.IsGuildMember(target)
-        end
+        for _ = 1, count do ManaInvite.IsGuildMember(target) end
     end, iterations)
 end
 
@@ -104,8 +87,6 @@ local function benchmarkWhispers()
     mock.setGuildMembers("Guild1-Realm", "Guild2-Realm", "Guild3-Realm", "Guild4-Realm")
     ManaInvite:RebuildGuildMembers()
     inviteDB.enabled = true
-    mock.clearInvites()
-
     local messages = { "mana", "mana pls", "give mana", "MANA", "" }
     local senders = { "Guild1-Realm", "Guild2-Realm", "NotGuild-Realm", "Guild3-Realm", "NotGuild-Realm" }
     local length = #messages
@@ -124,18 +105,12 @@ end
 
 local function benchmarkRebuild(size)
     local members = {}
-    for i = 1, size do
-        members[#members + 1] = "Guild" .. i .. "-Realm"
-    end
+    for i = 1, size do members[#members + 1] = "Guild" .. i .. "-Realm" end
     mock.setGuildMembers(unpackValues(members))
-    for _ = 1, warmup do
-        ManaInvite:RebuildGuildMembers()
-    end
+    for _ = 1, warmup do ManaInvite:RebuildGuildMembers() end
     local count = math.max(1, math.floor(iterations / 100))
     local elapsed = runTimed(function(rebuildCount)
-        for _ = 1, rebuildCount do
-            ManaInvite:RebuildGuildMembers()
-        end
+        for _ = 1, rebuildCount do ManaInvite:RebuildGuildMembers() end
     end, count)
     return elapsed, count
 end
@@ -159,14 +134,10 @@ local function benchmarkCinematicStart()
     CinematicSkip:UpdateEvents()
     local calls = 0
     CinematicFrame_CancelCinematic = function() calls = calls + 1 end
-    for _ = 1, warmup do
-        mock.fireEvent("CINEMATIC_START")
-    end
+    for _ = 1, warmup do mock.fireEvent("CINEMATIC_START") end
     calls = 0
     local elapsed = runTimed(function(count)
-        for _ = 1, count do
-            mock.fireEvent("CINEMATIC_START")
-        end
+        for _ = 1, count do mock.fireEvent("CINEMATIC_START") end
     end, iterations)
     CinematicFrame_CancelCinematic = nil
     return elapsed
@@ -176,15 +147,9 @@ local function benchmarkPlayMovie()
     cinematicSkipDB.enabled = true
     CinematicSkip:UpdateEvents()
     MovieFrame = CreateFrame("Frame")
-    for _ = 1, warmup do
-        MovieFrame:Show()
-        mock.fireEvent("PLAY_MOVIE")
-    end
+    for _ = 1, warmup do MovieFrame:Show(); mock.fireEvent("PLAY_MOVIE") end
     local elapsed = runTimed(function(count)
-        for _ = 1, count do
-            MovieFrame:Show()
-            mock.fireEvent("PLAY_MOVIE")
-        end
+        for _ = 1, count do MovieFrame:Show(); mock.fireEvent("PLAY_MOVIE") end
     end, iterations)
     MovieFrame = nil
     return elapsed
@@ -194,15 +159,9 @@ local function benchmarkTalkingHead()
     cinematicSkipDB.enabled = true
     CinematicSkip:UpdateEvents()
     TalkingHeadFrame = CreateFrame("Frame")
-    for _ = 1, warmup do
-        TalkingHeadFrame:Show()
-        mock.fireEvent("TALKINGHEAD_REQUESTED")
-    end
+    for _ = 1, warmup do TalkingHeadFrame:Show(); mock.fireEvent("TALKINGHEAD_REQUESTED") end
     local elapsed = runTimed(function(count)
-        for _ = 1, count do
-            TalkingHeadFrame:Show()
-            mock.fireEvent("TALKINGHEAD_REQUESTED")
-        end
+        for _ = 1, count do TalkingHeadFrame:Show(); mock.fireEvent("TALKINGHEAD_REQUESTED") end
     end, iterations)
     TalkingHeadFrame = nil
     return elapsed
@@ -216,22 +175,21 @@ results[#results + 1] = ""
 results[#results + 1] = "NoInfo benchmarks"
 results[#results + 1] = "----------------"
 
--- Load NoInfo after the other modules so its frame globals can be mocked locally.
+-- Give NoInfo a real original OnShow handler so its disabled path is measurable.
 GameTooltip = CreateFrame("GameTooltip")
+local originalTooltipOnShowCalls = 0
+local originalTooltipOnShow = function() originalTooltipOnShowCalls = originalTooltipOnShowCalls + 1 end
+GameTooltip:SetScript("OnShow", originalTooltipOnShow)
 function GameTooltip:GetTooltipData() return self.tooltipData end
 function GameTooltip:GetOwner() return self.tooltipOwner end
 Minimap = CreateFrame("Frame")
-function Minimap:GetCenter() return 500, 500 end
-function Minimap:GetWidth() return 100 end
 MainMenuMicroButton = CreateFrame("Button")
 UIParent = CreateFrame("Frame")
-function UIParent:GetEffectiveScale() return 1 end
 Enum = { TooltipDataType = { Item = 0 } }
 
 loadFile("NoInfo/NoInfo.lua", "ManaTools", ManaTools)
 local noInfoDB = ManaTools.DB.NoInfo
 local NoInfo = ManaTools.NoInfo
-local noInfoWrapper = GameTooltip:GetScript("OnShow")
 
 local itemData = { type = Enum.TooltipDataType.Item }
 local genericData = { type = 999 }
@@ -243,13 +201,10 @@ local function benchmarkNoInfoState(name, enabled, inspectMode, data, owner)
     GameTooltip.tooltipOwner = owner
     NoInfo.Update()
     local handler = GameTooltip:GetScript("OnShow")
-    for _ = 1, warmup do
-        handler(GameTooltip)
-    end
+    assert(handler, "NoInfo benchmark requires an OnShow handler: " .. name)
+    for _ = 1, warmup do handler(GameTooltip) end
     local elapsed = runTimed(function(count)
-        for _ = 1, count do
-            handler(GameTooltip)
-        end
+        for _ = 1, count do handler(GameTooltip) end
     end, iterations)
     appendMetric(results, name, elapsed, iterations)
 end
@@ -258,18 +213,14 @@ benchmarkNoInfoState("NoInfo enabled: generic tooltip", true, false, genericData
 benchmarkNoInfoState("NoInfo enabled: item tooltip", true, false, itemData, nil)
 benchmarkNoInfoState("NoInfo enabled: inspect mode", true, true, genericData, nil)
 
--- Disabled state: measure the actual Blizzard handler path. NoInfo must not wrap it.
 noInfoDB.enabled = false
 noInfoDB.inspectMode = false
 NoInfo.Update()
 local disabledHandler = GameTooltip:GetScript("OnShow")
-for _ = 1, warmup do
-    disabledHandler(GameTooltip)
-end
+assert(disabledHandler == originalTooltipOnShow, "NoInfo disabled path must restore the original OnShow")
+for _ = 1, warmup do disabledHandler(GameTooltip) end
 appendMetric(results, "NoInfo disabled: original OnShow", runTimed(function(count)
-    for _ = 1, count do
-        disabledHandler(GameTooltip)
-    end
+    for _ = 1, count do disabledHandler(GameTooltip) end
 end, iterations), iterations)
 
 results[#results + 1] = ""
