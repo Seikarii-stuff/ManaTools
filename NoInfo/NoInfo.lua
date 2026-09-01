@@ -41,12 +41,7 @@ local function UpdateInspectButton()
     end
 
     inspectButton:SetShown(db.enabled == true)
-
-    if db.inspectMode then
-        inspectButton:SetAlpha(1)
-    else
-        inspectButton:SetAlpha(0.55)
-    end
+    inspectButton:SetAlpha(db.inspectMode and 1 or 0.55)
 end
 
 local function ToggleInspectMode()
@@ -60,10 +55,21 @@ local function ToggleInspectMode()
 end
 
 local function SetMinimapPosition(button, angle)
-    local radius = (Minimap:GetWidth() * 0.5) + 4
+    local radius = (Minimap:GetWidth() * 0.5) + 14
     local radians = math.rad(angle)
     button:ClearAllPoints()
     button:SetPoint("CENTER", Minimap, "CENTER", math.cos(radians) * radius, math.sin(radians) * radius)
+end
+
+local function UpdateMinimapPositionFromCursor(button)
+    local x, y = GetCursorPosition()
+    local scale = UIParent:GetEffectiveScale()
+    x, y = x / scale, y / scale
+    local cx, cy = Minimap:GetCenter()
+    local angle = math.deg(math.atan2(y - cy, x - cx))
+
+    db.minimapAngle = angle
+    SetMinimapPosition(button, angle)
 end
 
 local function CreateInspectButton()
@@ -98,24 +104,25 @@ local function CreateInspectButton()
     end)
 
     button:SetScript("OnMouseDown", function(self, mouseButton)
-        if mouseButton == "LeftButton" and IsShiftKeyDown() then
-            self.wasDragging = true
-        end
-    end)
-
-    button:SetScript("OnMouseUp", function(self, mouseButton)
-        if mouseButton ~= "LeftButton" or not self.wasDragging then
+        if mouseButton ~= "LeftButton" or not IsShiftKeyDown() then
             return
         end
 
-        local x, y = GetCursorPosition()
-        local scale = UIParent:GetEffectiveScale()
-        x, y = x / scale, y / scale
-        local cx, cy = Minimap:GetCenter()
-        local angle = math.deg(math.atan2(y - cy, x - cx))
+        self.wasDragging = true
+        self.dragging = true
+        self:SetScript("OnUpdate", function(owner)
+            UpdateMinimapPositionFromCursor(owner)
+        end)
+    end)
 
-        db.minimapAngle = angle
-        SetMinimapPosition(self, angle)
+    button:SetScript("OnMouseUp", function(self, mouseButton)
+        if mouseButton ~= "LeftButton" or not self.dragging then
+            return
+        end
+
+        UpdateMinimapPositionFromCursor(self)
+        self.dragging = false
+        self:SetScript("OnUpdate", nil)
     end)
 
     inspectButton = button
