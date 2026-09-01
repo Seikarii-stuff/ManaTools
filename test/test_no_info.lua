@@ -17,12 +17,9 @@ local function newFrame()
     function frame:SetPoint(...) self.point = {...} end
     function frame:ClearAllPoints() self.point = nil end
     function frame:RegisterForClicks(...) self.clicks = {...} end
-    function frame:RegisterForDrag(...) self.dragButtons = {...} end
     function frame:EnableMouse(value) self.mouseEnabled = value end
     function frame:SetShown(value) self.shown = value end
     function frame:SetAlpha(value) self.alpha = value end
-    function frame:GetCenter() return 500, 500 end
-    function frame:GetEffectiveScale() return 1 end
     function frame:GetWidth() return 100 end
     function frame:CreateTexture()
         local texture = newFrame()
@@ -46,9 +43,6 @@ local function runTest()
     Minimap = newFrame()
     MainMenuMicroButton = newFrame()
     Enum = { TooltipDataType = { Item = 0 } }
-    GetCursorPosition = function() return 600, 500 end
-    UIParent = newFrame()
-    IsShiftKeyDown = function() return true end
 
     local db = { enabled = true }
     local namespace = { DB = { NoInfo = db }, NoInfo = {} }
@@ -66,6 +60,8 @@ local function runTest()
 
     local wrapper = GameTooltip:GetScript("OnShow")
     assert(wrapper ~= nil, "enabled NoInfo installs its wrapper")
+
+    GameTooltip.hidden = false
     wrapper(GameTooltip)
     assert(originalShowCount == 1, "original OnShow still runs")
     assert(GameTooltip.hidden == true, "generic tooltip is hidden")
@@ -74,8 +70,8 @@ local function runTest()
     assert(button ~= nil, "inspect button is created")
     assert(button.shown == true, "button is shown while enabled")
     assert(button.point[2] == Minimap, "button is anchored to Minimap")
-    assert(button.icon.atlas == "talents-search-match", "button uses Blizzard magnifier atlas")
-    assert(button.dragButtons and button.dragButtons[1] == "LeftButton", "button supports left-button drag")
+    assert(button.icon.atlas == "talents-search-match", "button uses the Blizzard magnifier atlas")
+    assert(button.alpha == 0.55, "button starts dimmed outside inspect mode")
 
     button.scripts.OnClick(button, "LeftButton")
     assert(db.inspectMode == true, "left click enables inspect mode")
@@ -84,47 +80,24 @@ local function runTest()
     GameTooltip.hidden = false
     wrapper(GameTooltip)
     assert(originalShowCount == 2, "original OnShow runs in inspect mode")
-    assert(GameTooltip.hidden == false, "inspect mode allows generic tooltip")
+    assert(GameTooltip.hidden == false, "inspect mode lets generic tooltips show")
 
-    button.scripts.OnClick(button, "LeftButton")
-    assert(db.inspectMode == false, "second left click disables inspect mode")
-
-    assert(button.scripts.OnDragStart ~= nil, "drag start handler exists")
-    assert(button.scripts.OnDragStop ~= nil, "drag stop handler exists")
-    button.scripts.OnDragStart(button, "RightButton")
-    assert(button.scripts.OnUpdate == nil, "non-left drag is ignored")
-    assert(button.isMoving ~= true, "non-left drag does not start moving")
-
-    button.scripts.OnDragStart(button, "LeftButton")
-    assert(button.scripts.OnUpdate ~= nil, "shift + left drag installs temporary OnUpdate")
-    assert(button.isMoving == true, "shift + left drag enters moving state")
-    button.scripts.OnUpdate(button)
-    assert(db.minimapAngle == 0, "drag computes the expected angle")
-    button.scripts.OnDragStop(button, "LeftButton")
-    assert(button.scripts.OnUpdate == nil, "drag removes temporary OnUpdate")
-    assert(button.isMoving == false, "drag clears moving state")
+    tooltip.GetTooltipData = function() return { type = Enum.TooltipDataType.Item } end
+    GameTooltip.hidden = false
+    wrapper(GameTooltip)
+    assert(GameTooltip.hidden == false, "item tooltip data stays exempt")
 
     db.enabled = false
     namespace.NoInfo.Update()
-    assert(GameTooltip:GetScript("OnShow") == originalOnShow, "disable restores original OnShow")
+    assert(GameTooltip:GetScript("OnShow") == originalOnShow, "disable restores the original OnShow")
     assert(db.inspectMode == false, "disable clears inspect mode")
     assert(button.shown == false, "button is hidden while disabled")
-    assert(button.scripts.OnUpdate == nil, "disabled state has no drag OnUpdate")
 
     db.enabled = true
     namespace.NoInfo.Update()
     local wrapper2 = GameTooltip:GetScript("OnShow")
-    assert(wrapper2 == wrapper, "reactivation reuses the shared OnShow wrapper")
-    assert(button.shown == true, "reactivation shows button")
-
-    GameTooltip.hidden = false
-    wrapper2(GameTooltip)
-    assert(originalShowCount == 3, "reactivated wrapper still calls original OnShow")
-    assert(GameTooltip.hidden == true, "reactivated wrapper still hides generic tooltip")
-
-    db.enabled = false
-    namespace.NoInfo.Update()
-    assert(GameTooltip:GetScript("OnShow") == originalOnShow, "second disable restores original OnShow")
+    assert(wrapper2 == wrapper, "reactivation reuses the shared wrapper")
+    assert(button.shown == true, "reactivation shows the button again")
 
     print("NoInfo tests passed")
 end

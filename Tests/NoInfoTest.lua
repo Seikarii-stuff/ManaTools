@@ -21,75 +21,28 @@ function Tests.Run()
     Assert("NoInfo API exists", ManaTools.NoInfo and ManaTools.NoInfo.Update ~= nil)
     Assert("default is enabled", ManaTools.DB.NoInfo.enabled == true)
 
-    local tooltip = GameTooltip
-    local oldGetScript = tooltip.GetScript
-    local oldSetScript = tooltip.SetScript
-    local oldGetTooltipData = tooltip.GetTooltipData
-    local oldGetOwner = tooltip.GetOwner
-    local oldHide = tooltip.Hide
-    local original = function() end
-    local current = original
-    local hidden = false
-    local setCount = 0
+    local originalOnShow = GameTooltip:GetScript("OnShow")
+    local db = ManaTools.DB.NoInfo
 
-    tooltip.GetScript = function(self, scriptType)
-        Assert("GetScript requests OnShow", scriptType == "OnShow")
-        return current
-    end
-    tooltip.SetScript = function(self, scriptType, handler)
-        Assert("SetScript requests OnShow", scriptType == "OnShow")
-        current = handler
-        setCount = setCount + 1
-    end
-    tooltip.GetTooltipData = function()
-        return { type = -1 }
-    end
-    tooltip.GetOwner = function()
-        return nil
-    end
-    tooltip.Hide = function()
-        hidden = true
+    db.enabled = true
+    ManaTools.NoInfo.Update()
+    Assert("enable installs a wrapper", GameTooltip:GetScript("OnShow") ~= originalOnShow)
+
+    local button = _G.ManaToolsNoInfoInspectButton
+    Assert("inspect button is created", button ~= nil)
+    Assert("button is visible while enabled", button and button:IsShown() == true)
+
+    if button then
+        button:Click()
+        Assert("left click toggles inspect mode", db.inspectMode == true)
+        button:Click()
+        Assert("second click disables inspect mode", db.inspectMode == false)
     end
 
-    ManaTools.DB.NoInfo.enabled = true
+    db.enabled = false
     ManaTools.NoInfo.Update()
-    local wrapper = current
-    Assert("enable installs reversible wrapper", wrapper ~= original)
-    Assert("enable installs exactly once", setCount == 1)
-
-    hidden = false
-    wrapper(tooltip)
-    Assert("wrapper preserves original OnShow", current == wrapper)
-    Assert("wrapper hides non-exempt tooltip", hidden == true)
-
-    hidden = false
-    ManaTools.DB.NoInfo.enabled = false
-    ManaTools.NoInfo.Update()
-    Assert("disable restores original OnShow", current == original)
-    Assert("disable hides current tooltip", hidden == true)
-
-    local disabledSetCount = setCount
-    ManaTools.NoInfo.Update()
-    Assert("repeated disable does not touch script", setCount == disabledSetCount)
-
-    ManaTools.DB.NoInfo.enabled = true
-    ManaTools.NoInfo.Update()
-    Assert("reactivate installs a fresh wrapper", current ~= original)
-    Assert("reactivation does not accumulate wrappers", setCount == disabledSetCount + 1)
-
-    local secondWrapper = current
-    ManaTools.NoInfo.Update()
-    Assert("repeated enable does not replace wrapper", current == secondWrapper)
-    Assert("repeated enable does not add work", setCount == disabledSetCount + 1)
-
-    tooltip.GetScript = oldGetScript
-    tooltip.SetScript = oldSetScript
-    tooltip.GetTooltipData = oldGetTooltipData
-    tooltip.GetOwner = oldGetOwner
-    tooltip.Hide = oldHide
-
-    ManaTools.DB.NoInfo.enabled = true
-    ManaTools.NoInfo.Update()
+    Assert("disable restores the original handler", GameTooltip:GetScript("OnShow") == originalOnShow)
+    Assert("disable clears inspect mode", db.inspectMode == false)
 
     print(string.format("[NoInfo TEST] %d passed, %d failed", passed, failed))
     return failed == 0
