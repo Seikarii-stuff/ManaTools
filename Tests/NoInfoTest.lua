@@ -1,6 +1,5 @@
 -- NoInfo regression tests.
 -- Run in-game with: /run ManaTools.NoInfoTests.Run()
--- The tests use lightweight stubs so they do not depend on the live tooltip UI.
 
 local Tests = {}
 local passed, failed = 0, 0
@@ -22,55 +21,63 @@ function Tests.Run()
     Assert("NoInfo API exists", ManaTools.NoInfo and ManaTools.NoInfo.Update ~= nil)
     Assert("default is enabled", ManaTools.DB.NoInfo.enabled == true)
 
-    -- The regression that originally failed: Update() must not call a nil UnhookScript.
-    local oldTooltip = GameTooltip
-    local oldHookScript = oldTooltip.HookScript
-    local oldUnhookScript = oldTooltip.UnhookScript
-    local oldHide = oldTooltip.Hide
-    local hooks = {}
+    local tooltip = GameTooltip
+    local oldGetScript = tooltip.GetScript
+    local oldSetScript = tooltip.SetScript
+    local oldHide = tooltip.Hide
+    local original = function() end
+    local current = original
     local hidden = false
+    local setCount = 0
 
-    oldTooltip.HookScript = function(self, event, callback)
-        hooks[event] = callback
+    tooltip.GetScript = function(self, scriptType)
+        Assert("GetScript requests OnShow", scriptType == "OnShow")
+        return current
     end
-    oldTooltip.UnhookScript = function(self, event, callback)
-        Assert("UnhookScript receives OnShow", event == "OnShow")
-        Assert("UnhookScript receives our callback", hooks[event] == callback)
-        hooks[event] = nil
+    tooltip.SetScript = function(self, scriptType, handler)
+        Assert("SetScript requests OnShow", scriptType == "OnShow")
+        current = handler
+        setCount = setCount + 1
     end
-    oldTooltip.Hide = function()
+    tooltip.Hide = function()
         hidden = true
     end
 
     ManaTools.DB.NoInfo.enabled = true
     ManaTools.NoInfo.Update()
-    Assert("enable installs OnShow", hooks.OnShow ~= nil)
-
-    ManaTools.DB.NoInfo.enabled = false
-    ManaTools.NoInfo.Update()
-    Assert("disable removes OnShow", hooks.OnShow == nil)
-    Assert("disable hides current tooltip", hidden == true)
+    local wrapper = current
+    Assert("enable installs reversible wrapper", wrapper ~= original)
+    Assert("enable installs exactly once", setCount == 1)
 
     hidden = false
-    ManaTools.DB.NoInfo.enabled = true
-    ManaTools.NoInfo.Update()
-    Assert("reactivate reinstalls OnShow", hooks.OnShow ~= nil)
+    wrapper(tooltip)
+    Assert("wrapper preserves original OnShow", current == wrapper)
+    Assert("wrapper hides non-exempt tooltip", hidden == true)
 
-    -- Repeated state changes must be idempotent.
-    local installedCallback = hooks.OnShow
-    ManaTools.NoInfo.Update()
-    Assert("repeated enable keeps one hook", hooks.OnShow == installedCallback)
-
+    hidden = false
     ManaTools.DB.NoInfo.enabled = false
     ManaTools.NoInfo.Update()
+    Assert("disable restores original OnShow", current == original)
+    Assert("disable hides current tooltip", hidden == true)
+
+    local disabledSetCount = setCount
     ManaTools.NoInfo.Update()
-    Assert("repeated disable stays disabled", hooks.OnShow == nil)
+    Assert("repeated disable does not touch script", setCount == disabledSetCount)
 
-    oldTooltip.HookScript = oldHookScript
-    oldTooltip.UnhookScript = oldUnhookScript
-    oldTooltip.Hide = oldHide
+    ManaTools.DB.NoInfo.enabled = true
+    ManaTools.NoInfo.Update()
+    Assert("reactivate installs a fresh wrapper", current ~= original)
+    Assert("reactivation does not accumulate wrappers", setCount == disabledSetCount + 1)
 
-    -- Leave the addon in its configured/default enabled state after tests.
+    local secondWrapper = current
+    ManaTools.NoInfo.Update()
+    Assert("repeated enable does not replace wrapper", current == secondWrapper)
+    Assert("repeated enable does not add work", setCount == disabledSetCount + 1)
+
+    tooltip.GetScript = oldGetScript
+    tooltip.SetScript = oldSetScript
+    tooltip.Hide = oldHide
+
     ManaTools.DB.NoInfo.enabled = true
     ManaTools.NoInfo.Update()
 
