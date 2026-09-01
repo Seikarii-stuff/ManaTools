@@ -1,4 +1,4 @@
--- NoInfo behavior test suite.
+-- NoInfo behavior and lifecycle test suite.
 -- Requires Lua 5.1+.
 -- Run from repository root: lua test/test_no_info.lua
 
@@ -16,9 +16,14 @@ local function newFrame()
     function frame:SetFrameStrata(value) self.strata = value end
     function frame:SetFrameLevel(value) self.level = value end
     function frame:SetPoint(...) self.point = {...} end
+    function frame:ClearAllPoints() self.point = nil end
     function frame:RegisterForClicks(...) self.clicks = {...} end
+    function frame:RegisterForDrag(...) self.dragButtons = {...} end
+    function frame:EnableMouse(value) self.mouseEnabled = value end
     function frame:SetShown(value) self.shown = value end
     function frame:SetAlpha(value) self.alpha = value end
+    function frame:GetCenter() return 500, 500 end
+    function frame:GetWidth() return 100 end
     function frame:CreateTexture()
         local texture = {}
         function texture:SetSize(w, h) texture.w, texture.h = w, h end
@@ -27,6 +32,7 @@ local function newFrame()
         function texture:SetAlpha(value) texture.alpha = value end
         return texture
     end
+    function frame:Hide() self.hidden = true end
     return frame
 end
 
@@ -34,7 +40,6 @@ local function runTest()
     local tooltip = newFrame()
     function tooltip:GetTooltipData() return { type = 999 } end
     function tooltip:GetOwner() return nil end
-    function tooltip:Hide() self.hidden = true end
 
     local originalShowCount = 0
     local originalOnShow = function()
@@ -46,6 +51,10 @@ local function runTest()
     Minimap = newFrame()
     MainMenuMicroButton = newFrame()
     Enum = { TooltipDataType = { Item = 0 } }
+    GetCursorPosition = function() return 600, 500 end
+    UIParent = newFrame()
+    function UIParent:GetEffectiveScale() return 1 end
+    IsShiftKeyDown = function() return true end
     _G.ManaToolsNoInfoInspectButton = nil
 
     local db = { enabled = true }
@@ -74,8 +83,9 @@ local function runTest()
     assert(button.shown == true, "inspect button is shown while NoInfo is enabled")
     assert(button.point[2] == Minimap, "inspect button is anchored to Minimap")
     assert(button.icon.atlas == "talents-search-match", "inspect button uses Blizzard search/magnifier atlas")
+    assert(button.dragButtons and button.dragButtons[1] == "LeftButton", "inspect button registers left-button drag")
 
-    -- Simulate the left-click on the real button.
+    -- Normal left click toggles inspect mode.
     button.scripts.OnClick(button, "LeftButton")
     assert(db.inspectMode == true, "left click enables inspect mode")
     assert(button.alpha == 1, "inspect button is highlighted while active")
@@ -85,23 +95,37 @@ local function runTest()
     assert(originalShowCount == 2, "original tooltip OnShow still runs in inspect mode")
     assert(GameTooltip.hidden == false, "inspect mode allows normal tooltips")
 
-    -- Clicking again returns to suppression.
     button.scripts.OnClick(button, "LeftButton")
     assert(db.inspectMode == false, "second left click disables inspect mode")
     assert(button.alpha == 0.55, "inspect button is dimmed while inactive")
 
+    -- Shift + drag follows the cursor and persists the angle.
+    button.scripts.OnDragStart(button)
+    assert(button.scripts.OnUpdate ~= nil, "drag installs temporary OnUpdate")
+    button.scripts.OnUpdate(button)
+    assert(db.minimapAngle == 0, "drag computes the expected angle")
+    button.scripts.OnDragStop(button)
+    assert(button.scripts.OnUpdate == nil, "drag removes temporary OnUpdate")
+
+    -- Disabling restores Blizzard's original OnShow and removes the button.
     db.enabled = false
     namespace.NoInfo.Update()
     assert(GameTooltip:GetScript("OnShow") == originalOnShow, "disabling restores the original OnShow")
     assert(db.inspectMode == false, "disabling clears inspect mode")
     assert(button.shown == false, "inspect button is hidden while NoInfo is disabled")
+    assert(button.scripts.OnUpdate == nil, "disabled state has no drag OnUpdate")
 
+    -- Re-enable and verify a clean wrapper lifecycle without accumulating handlers.
     db.enabled = true
     namespace.NoInfo.Update()
     local wrapper2 = GameTooltip:GetScript("OnShow")
     assert(wrapper2 ~= nil, "reactivating reinstalls the wrapper")
     assert(wrapper2 ~= wrapper, "reactivation creates a fresh wrapper")
     assert(button.shown == true, "reactivating shows the inspect button")
+
+    db.enabled = false
+    namespace.NoInfo.Update()
+    assert(GameTooltip:GetScript("OnShow") == originalOnShow, "second disable restores original OnShow")
 
     print("NoInfo tests passed")
 end
