@@ -59,6 +59,13 @@ local function ToggleInspectMode()
     UpdateInspectButton()
 end
 
+local function SetMinimapPosition(button, angle)
+    local radius = (Minimap:GetWidth() * 0.5) + 4
+    local radians = math.rad(angle)
+    button:ClearAllPoints()
+    button:SetPoint("CENTER", Minimap, "CENTER", math.cos(radians) * radius, math.sin(radians) * radius)
+end
+
 local function CreateInspectButton()
     if inspectButton or not Minimap then
         return
@@ -68,8 +75,9 @@ local function CreateInspectButton()
     button:SetSize(30, 30)
     button:SetFrameStrata("MEDIUM")
     button:SetFrameLevel(8)
-    button:SetPoint("CENTER", Minimap, "CENTER", 80, 0)
     button:RegisterForClicks("LeftButtonUp")
+    button:SetMovable(true)
+    button:EnableMouse(true)
 
     local icon = button:CreateTexture(nil, "ARTWORK")
     icon:SetSize(20, 20)
@@ -85,7 +93,39 @@ local function CreateInspectButton()
 
     button:SetScript("OnClick", ToggleInspectMode)
 
+    button:SetScript("OnDragStart", function(self)
+        self.dragging = true
+    end)
+
+    button:SetScript("OnDragStop", function(self)
+        self.dragging = false
+        if self.dragStartX and self.dragStartY then
+            local x, y = GetCursorPosition()
+            local scale = UIParent:GetEffectiveScale()
+            x, y = x / scale, y / scale
+            local cx, cy = Minimap:GetCenter()
+            local angle = math.deg(math.atan2(y - cy, x - cx))
+            db.minimapAngle = angle
+            SetMinimapPosition(self, angle)
+        end
+    end)
+
+    button:SetScript("OnMouseDown", function(self, mouseButton)
+        if mouseButton == "LeftButton" and IsShiftKeyDown() then
+            self.dragStartX, self.dragStartY = GetCursorPosition()
+            self:StartMoving()
+        end
+    end)
+
+    button:SetScript("OnMouseUp", function(self, mouseButton)
+        if self:IsMoving() then
+            self:StopMovingOrSizing()
+        end
+        self.dragStartX, self.dragStartY = nil, nil
+    end)
+
     inspectButton = button
+    SetMinimapPosition(button, db.minimapAngle or 0)
     UpdateInspectButton()
 end
 
