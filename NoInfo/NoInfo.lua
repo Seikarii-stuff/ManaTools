@@ -54,22 +54,30 @@ local function ToggleInspectMode()
     UpdateInspectButton()
 end
 
+-- Follow the same angle-based model used by LibDBIcon-1.0:
+-- the button is positioned from the minimap center, and dragging changes only
+-- the saved angle. This avoids pixel-dragging and keeps the icon on the rim.
 local function SetMinimapPosition(button, angle)
-    local radius = (Minimap:GetWidth() * 0.5) + 14
+    angle = angle or 225
     local radians = math.rad(angle)
+    local x, y = math.cos(radians), math.sin(radians)
+
+    -- Keep the icon just outside the minimap. The value is based on the
+    -- current minimap size so it also follows resized minimaps.
+    local radius = (Minimap:GetWidth() * 0.5) + 14
     button:ClearAllPoints()
-    button:SetPoint("CENTER", Minimap, "CENTER", math.cos(radians) * radius, math.sin(radians) * radius)
+    button:SetPoint("CENTER", Minimap, "CENTER", x * radius, y * radius)
 end
 
-local function UpdateMinimapPositionFromCursor(button)
-    local x, y = GetCursorPosition()
-    local scale = UIParent:GetEffectiveScale()
-    x, y = x / scale, y / scale
-    local cx, cy = Minimap:GetCenter()
-    local angle = math.deg(math.atan2(y - cy, x - cx))
+local function UpdateMinimapPosition(button)
+    local mx, my = Minimap:GetCenter()
+    local px, py = GetCursorPosition()
+    local scale = Minimap:GetEffectiveScale()
 
-    db.minimapAngle = angle
-    SetMinimapPosition(button, angle)
+    px, py = px / scale, py / scale
+
+    db.minimapAngle = math.deg(math.atan2(py - my, px - mx)) % 360
+    SetMinimapPosition(button, db.minimapAngle)
 end
 
 local function CreateInspectButton()
@@ -82,6 +90,7 @@ local function CreateInspectButton()
     button:SetFrameStrata("MEDIUM")
     button:SetFrameLevel(8)
     button:RegisterForClicks("LeftButtonUp")
+    button:RegisterForDrag("LeftButton")
     button:EnableMouse(true)
 
     local icon = button:CreateTexture(nil, "ARTWORK")
@@ -97,36 +106,35 @@ local function CreateInspectButton()
     highlight:SetAlpha(0.35)
 
     button:SetScript("OnClick", function(self, mouseButton)
-        if mouseButton == "LeftButton" and not self.wasDragging then
+        if mouseButton == "LeftButton" and not self.isMoving then
             ToggleInspectMode()
         end
-        self.wasDragging = false
     end)
 
-    button:SetScript("OnMouseDown", function(self, mouseButton)
+    button:SetScript("OnDragStart", function(self, mouseButton)
         if mouseButton ~= "LeftButton" or not IsShiftKeyDown() then
             return
         end
 
-        self.wasDragging = true
-        self.dragging = true
+        self.isMoving = true
         self:SetScript("OnUpdate", function(owner)
-            UpdateMinimapPositionFromCursor(owner)
+            UpdateMinimapPosition(owner)
         end)
+        GameTooltip:Hide()
     end)
 
-    button:SetScript("OnMouseUp", function(self, mouseButton)
-        if mouseButton ~= "LeftButton" or not self.dragging then
+    button:SetScript("OnDragStop", function(self)
+        if not self.isMoving then
             return
         end
 
-        UpdateMinimapPositionFromCursor(self)
-        self.dragging = false
+        UpdateMinimapPosition(self)
         self:SetScript("OnUpdate", nil)
+        self.isMoving = false
     end)
 
     inspectButton = button
-    SetMinimapPosition(button, db.minimapAngle or 0)
+    SetMinimapPosition(button, db.minimapAngle or 225)
     UpdateInspectButton()
 end
 
