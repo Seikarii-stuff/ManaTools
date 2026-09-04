@@ -4,6 +4,7 @@ local db = ManaTools.DB.NoInfo
 local originalOnShow
 local wrapperInstalled = false
 local inspectButton
+local unitHookInstalled = false
 
 local function HideGameTooltip(self)
     if db.inspectMode then
@@ -42,6 +43,13 @@ local function UpdateInspectButton()
 
     inspectButton:SetShown(db.enabled == true)
     inspectButton:SetAlpha(db.inspectMode and 1 or 0.55)
+    if inspectButton.icon and inspectButton.icon.SetVertexColor then
+        if db.inspectMode then
+            inspectButton.icon:SetVertexColor(1, 0, 0)
+        else
+            inspectButton.icon:SetVertexColor(1, 1, 1)
+        end
+    end
 end
 
 local function ToggleInspectMode()
@@ -77,6 +85,11 @@ local function CreateInspectButton()
     icon:SetSize(20, 20)
     icon:SetPoint("CENTER")
     icon:SetAtlas("talents-search-match", true)
+    if icon.SetVertexColor then
+        icon:SetVertexColor(1, 1, 1)
+    else
+        function icon:SetVertexColor(r, g, b) self.r, self.g, self.b = r, g, b end
+    end
     button.icon = icon
 
     local highlight = button:CreateTexture(nil, "HIGHLIGHT")
@@ -86,8 +99,16 @@ local function CreateInspectButton()
     highlight:SetAlpha(0.35)
 
     button:SetScript("OnClick", function(self, mouseButton)
-        if mouseButton == "LeftButton" then
-            ToggleInspectMode()
+        if mouseButton ~= "LeftButton" then return end
+
+        if IsShiftKeyDown and IsShiftKeyDown() then
+            if not db.enabled then return end
+            db.inspectMode = true
+            UpdateInspectButton()
+        else
+            db.inspectMode = false
+            GameTooltip:Hide()
+            UpdateInspectButton()
         end
     end)
 
@@ -103,6 +124,44 @@ local function Enable()
 
     originalOnShow = GameTooltip:GetScript("OnShow")
     GameTooltip:SetScript("OnShow", NoInfoOnShow)
+    -- install unit tooltip hook once
+    if not unitHookInstalled and GameTooltip.HookScript then
+        GameTooltip:HookScript("OnTooltipSetUnit", function(self, ...)
+            -- performance safety: early exit when feature is off
+            if not db.inspectMode then
+                return
+            end
+
+            local unit = ...
+            if not unit and self.GetUnit then
+                local ok, u = pcall(self.GetUnit, self)
+                unit = ok and u or nil
+            end
+
+            if not unit then
+                return
+            end
+
+            if not UnitIsPlayer or not UnitIsPlayer(unit) then
+                return
+            end
+
+            if not C_PlayerInfo or not C_PlayerInfo.GetPlayerMythicPlusRatingSummary then
+                return
+            end
+
+            local summary = C_PlayerInfo.GetPlayerMythicPlusRatingSummary(unit)
+            if not summary or not summary.currentSeasonScore then
+                return
+            end
+
+            if GameTooltip.AddLine then
+                GameTooltip:AddLine("Mythic+ Rating: " .. tostring(summary.currentSeasonScore))
+                GameTooltip:Show()
+            end
+        end)
+        unitHookInstalled = true
+    end
     wrapperInstalled = true
     db.inspectMode = false
     UpdateInspectButton()

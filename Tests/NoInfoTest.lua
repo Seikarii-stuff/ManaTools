@@ -33,10 +33,15 @@ function Tests.Run()
     Assert("button is visible while enabled", button and button:IsShown() == true)
 
     if button then
-        button:Click()
-        Assert("left click toggles inspect mode", db.inspectMode == true)
-        button:Click()
-        Assert("second click disables inspect mode", db.inspectMode == false)
+        -- simulate Shift+LeftClick to enable
+        _G.IsShiftKeyDown = function() return true end
+        local onClick = button:GetScript("OnClick")
+        if onClick then onClick(button, "LeftButton") end
+        Assert("shift+left click enables inspect mode", db.inspectMode == true)
+        -- simulate normal LeftClick to disable
+        _G.IsShiftKeyDown = function() return false end
+        if onClick then onClick(button, "LeftButton") end
+        Assert("left click disables inspect mode", db.inspectMode == false)
     end
 
     db.enabled = false
