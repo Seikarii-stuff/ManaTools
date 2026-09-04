@@ -214,7 +214,8 @@ local function InstallMythicPlusTooltipHook()
             return
         end
 
-        if not UnitIsPlayer or UnitIsPlayer(unit) ~= true then
+        local isPlayer = UnitIsPlayer and UnitIsPlayer(unit)
+        if not isPlayer or (issecretvalue and issecretvalue(isPlayer)) then
             return
         end
 
