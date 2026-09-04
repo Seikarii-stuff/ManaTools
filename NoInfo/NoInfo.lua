@@ -6,8 +6,24 @@ local wrapperInstalled = false
 local inspectButton
 local unitHookInstalled = false
 
+local function NormalizeInspectMode(value)
+    if value == true then
+        return 1
+    end
+    if value == false then
+        return 0
+    end
+    if value == nil then
+        return 0
+    end
+    if value == 1 or value == 2 then
+        return value
+    end
+    return 0
+end
+
 local function HideGameTooltip(self)
-    if db.inspectMode then
+    if db.inspectMode ~= 0 then
         return
     end
 
@@ -41,13 +57,33 @@ local function UpdateInspectButton()
         return
     end
 
+    db.inspectMode = NormalizeInspectMode(db.inspectMode)
     inspectButton:SetShown(db.enabled == true)
-    inspectButton:SetAlpha(db.inspectMode and 1 or 0.55)
-    if inspectButton.icon and inspectButton.icon.SetVertexColor then
-        if db.inspectMode then
-            inspectButton.icon:SetVertexColor(1, 0, 0)
-        else
-            inspectButton.icon:SetVertexColor(1, 1, 1)
+
+    local mode = NormalizeInspectMode(db.inspectMode)
+    if mode == 2 then
+        inspectButton:SetAlpha(1)
+        if inspectButton.icon and inspectButton.icon.SetVertexColor then
+            inspectButton.icon:SetVertexColor(1, 0.2, 0.2)
+        end
+        if inspectButton.highlight and inspectButton.highlight.SetVertexColor then
+            inspectButton.highlight:SetVertexColor(1, 0.2, 0.2)
+        end
+    elseif mode == 1 then
+        inspectButton:SetAlpha(1)
+        if inspectButton.icon and inspectButton.icon.SetVertexColor then
+            inspectButton.icon:SetVertexColor(0.55, 0.75, 1)
+        end
+        if inspectButton.highlight and inspectButton.highlight.SetVertexColor then
+            inspectButton.highlight:SetVertexColor(0.55, 0.75, 1)
+        end
+    else
+        inspectButton:SetAlpha(0.55)
+        if inspectButton.icon and inspectButton.icon.SetVertexColor then
+            inspectButton.icon:SetVertexColor(0.35, 0.55, 1)
+        end
+        if inspectButton.highlight and inspectButton.highlight.SetVertexColor then
+            inspectButton.highlight:SetVertexColor(0.35, 0.55, 1)
         end
     end
 end
@@ -57,7 +93,14 @@ local function ToggleInspectMode()
         return
     end
 
-    db.inspectMode = not db.inspectMode
+    if IsShiftKeyDown and IsShiftKeyDown() then
+        db.inspectMode = 2
+    elseif db.inspectMode == 0 then
+        db.inspectMode = 1
+    else
+        db.inspectMode = 0
+    end
+
     GameTooltip:Hide()
     UpdateInspectButton()
 end
@@ -86,7 +129,7 @@ local function CreateInspectButton()
     icon:SetPoint("CENTER")
     icon:SetAtlas("talents-search-match", true)
     if icon.SetVertexColor then
-        icon:SetVertexColor(1, 1, 1)
+        icon:SetVertexColor(0.35, 0.55, 1)
     else
         function icon:SetVertexColor(r, g, b) self.r, self.g, self.b = r, g, b end
     end
@@ -97,19 +140,25 @@ local function CreateInspectButton()
     highlight:SetPoint("CENTER")
     highlight:SetAtlas("talents-search-match", true)
     highlight:SetAlpha(0.35)
+    if highlight.SetVertexColor then
+        highlight:SetVertexColor(0.35, 0.55, 1)
+    end
+    button.highlight = highlight
 
     button:SetScript("OnClick", function(self, mouseButton)
         if mouseButton ~= "LeftButton" then return end
+        if not db.enabled then return end
 
         if IsShiftKeyDown and IsShiftKeyDown() then
-            if not db.enabled then return end
-            db.inspectMode = true
-            UpdateInspectButton()
+            db.inspectMode = 2
+        elseif db.inspectMode == 0 then
+            db.inspectMode = 1
         else
-            db.inspectMode = false
-            GameTooltip:Hide()
-            UpdateInspectButton()
+            db.inspectMode = 0
         end
+
+        GameTooltip:Hide()
+        UpdateInspectButton()
     end)
 
     inspectButton = button
@@ -122,22 +171,22 @@ local function Enable()
         return
     end
 
+    db.inspectMode = NormalizeInspectMode(db.inspectMode)
     originalOnShow = GameTooltip:GetScript("OnShow")
     GameTooltip:SetScript("OnShow", NoInfoOnShow)
-    -- install unit tooltip hook once
+
     if not unitHookInstalled and GameTooltip.HookScript then
-        local function unitHook(self, ...)
-            if not db.inspectMode then
+        local function unitHook(self)
+            if db.inspectMode ~= 2 then
                 return
             end
 
-            local unit = ...
-            if not unit and self.GetUnit then
-                local ok, u = pcall(self.GetUnit, self)
-                unit = ok and u or nil
+            if not self or not self.GetUnit then
+                return
             end
 
-            if not unit then
+            local _, unit = self:GetUnit()
+            if type(unit) ~= "string" or unit == "" then
                 return
             end
 
@@ -150,34 +199,33 @@ local function Enable()
             end
 
             local summary = C_PlayerInfo.GetPlayerMythicPlusRatingSummary(unit)
-            if not summary or not summary.currentSeasonScore then
+            if not summary or summary.currentSeasonScore == nil then
                 return
             end
 
-            if GameTooltip.AddLine then
-                GameTooltip:AddLine("Mythic+ Rating: " .. tostring(summary.currentSeasonScore))
-                if GameTooltip.Show then
-                    GameTooltip:Show()
+            local text = "Mythic+ Rating: " .. tostring(summary.currentSeasonScore)
+            if self.NumLines and self.GetLine then
+                local count = self:NumLines()
+                for i = 1, count do
+                    local line = self.GetLine(self, i)
+                    if line == text then
+                        return
+                    end
                 end
+            end
+
+            if self.AddLine then
+                self:AddLine(text)
             end
         end
 
-        local ok, err = pcall(function() GameTooltip:HookScript("OnTooltipSetUnit", unitHook) end)
-        if not ok then
-            -- try method form explicitly (defensive), ignore if both fail
-            local ok2, err2 = pcall(GameTooltip.HookScript, GameTooltip, "OnTooltipSetUnit", unitHook)
-            if ok2 then
-                unitHookInstalled = true
-            else
-                -- unable to install hook; avoid throwing in Enable()
-                unitHookInstalled = false
-            end
-        else
+        local ok = pcall(GameTooltip.HookScript, GameTooltip, "OnTooltipSetUnit", unitHook)
+        if ok then
             unitHookInstalled = true
         end
     end
+
     wrapperInstalled = true
-    db.inspectMode = false
     UpdateInspectButton()
 end
 
@@ -190,12 +238,13 @@ local function Disable()
     GameTooltip:SetScript("OnShow", originalOnShow)
     originalOnShow = nil
     wrapperInstalled = false
-    db.inspectMode = false
+    db.inspectMode = 0
     GameTooltip:Hide()
     UpdateInspectButton()
 end
 
 function ManaTools.NoInfo.Update()
+    db.inspectMode = NormalizeInspectMode(db.inspectMode)
     CreateInspectButton()
 
     if db.enabled then

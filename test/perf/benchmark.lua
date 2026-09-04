@@ -155,12 +155,12 @@ local function benchmarkNoInfoState(name, enabled, inspectMode, data, owner)
     appendMetric(results, name, elapsed, iterations)
 end
 
-benchmarkNoInfoState("NoInfo enabled: generic tooltip", true, false, genericData, nil)
-benchmarkNoInfoState("NoInfo enabled: item tooltip", true, false, itemData, nil)
-benchmarkNoInfoState("NoInfo enabled: inspect mode", true, true, genericData, nil)
+benchmarkNoInfoState("NoInfo OFF", true, 0, genericData, nil)
+benchmarkNoInfoState("NoInfo normal inspection", true, 1, genericData, nil)
+benchmarkNoInfoState("NoInfo inspection + rating", true, 2, genericData, nil)
 
 noInfoDB.enabled = false
-noInfoDB.inspectMode = false
+noInfoDB.inspectMode = 0
 NoInfo.Update()
 local disabledHandler = GameTooltip:GetScript("OnShow")
 assert(disabledHandler == originalTooltipOnShow, "NoInfo disabled path must restore the original OnShow")
