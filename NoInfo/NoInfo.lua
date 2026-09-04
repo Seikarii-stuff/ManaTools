@@ -126,8 +126,7 @@ local function Enable()
     GameTooltip:SetScript("OnShow", NoInfoOnShow)
     -- install unit tooltip hook once
     if not unitHookInstalled and GameTooltip.HookScript then
-        GameTooltip:HookScript("OnTooltipSetUnit", function(self, ...)
-            -- performance safety: early exit when feature is off
+        local function unitHook(self, ...)
             if not db.inspectMode then
                 return
             end
@@ -157,10 +156,25 @@ local function Enable()
 
             if GameTooltip.AddLine then
                 GameTooltip:AddLine("Mythic+ Rating: " .. tostring(summary.currentSeasonScore))
-                GameTooltip:Show()
+                if GameTooltip.Show then
+                    GameTooltip:Show()
+                end
             end
-        end)
-        unitHookInstalled = true
+        end
+
+        local ok, err = pcall(function() GameTooltip:HookScript("OnTooltipSetUnit", unitHook) end)
+        if not ok then
+            -- try method form explicitly (defensive), ignore if both fail
+            local ok2, err2 = pcall(GameTooltip.HookScript, GameTooltip, "OnTooltipSetUnit", unitHook)
+            if ok2 then
+                unitHookInstalled = true
+            else
+                -- unable to install hook; avoid throwing in Enable()
+                unitHookInstalled = false
+            end
+        else
+            unitHookInstalled = true
+        end
     end
     wrapperInstalled = true
     db.inspectMode = false

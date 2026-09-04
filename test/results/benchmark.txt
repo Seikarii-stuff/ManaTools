@@ -1,26 +1,26 @@
 ManaTools benchmark results
 ===========================
-Generated: 2026-09-04 03:53:27 UTC
+Generated: 2026-09-04 03:56:37 UTC
 Iterations per hot path: 100000
 Warmup per hot path: 10000
 
-NoWasteCoin Mythic raid                  0.032000 s       3125000 calls/s         0.320 us/call
-NoWasteCoin Heroic raid                  0.038000 s       2631579 calls/s         0.380 us/call
-NoWasteCoin Mythic+                      0.052000 s       1923077 calls/s         0.520 us/call
+NoWasteCoin Mythic raid                  0.031000 s       3225806 calls/s         0.310 us/call
+NoWasteCoin Heroic raid                  0.037000 s       2702703 calls/s         0.370 us/call
+NoWasteCoin Mythic+                      0.051000 s       1960784 calls/s         0.510 us/call
 NoWasteCoin Mythic 0                     0.052000 s       1923077 calls/s         0.520 us/call
-NoWasteCoin Open world                   0.021000 s       4761905 calls/s         0.210 us/call
+NoWasteCoin Open world                   0.020000 s       5000000 calls/s         0.200 us/call
 
 CinematicSkip benchmarks
 ------------------------
-CINEMATIC_START                          0.053000 s       1886792 calls/s         0.530 us/call
-PLAY_MOVIE                               0.154000 s        649351 calls/s         1.540 us/call
-TALKINGHEAD_REQUESTED                    0.159000 s        628931 calls/s         1.590 us/call
+CINEMATIC_START                          0.054000 s       1851852 calls/s         0.540 us/call
+PLAY_MOVIE                               0.155000 s        645161 calls/s         1.550 us/call
+TALKINGHEAD_REQUESTED                    0.161000 s        621118 calls/s         1.610 us/call
 
 NoInfo benchmarks
 ----------------
-NoInfo enabled: generic tooltip          0.097000 s       1030928 calls/s         0.970 us/call
-NoInfo enabled: item tooltip             0.033000 s       3030303 calls/s         0.330 us/call
-NoInfo enabled: inspect mode             0.020000 s       5000000 calls/s         0.200 us/call
+NoInfo enabled: generic tooltip          0.099000 s       1010101 calls/s         0.990 us/call
+NoInfo enabled: item tooltip             0.034000 s       2941176 calls/s         0.340 us/call
+NoInfo enabled: inspect mode             0.019000 s       5263158 calls/s         0.190 us/call
 NoInfo disabled: original OnShow         0.007000 s      14285714 calls/s         0.070 us/call
 
 Allocations: NOT AVAILABLE (Lua benchmark environment does not expose a reliable per-call allocation metric).
