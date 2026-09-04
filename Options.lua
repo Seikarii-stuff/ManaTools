@@ -1,7 +1,6 @@
 local ADDON_NAME, ManaTools = ...
 
 local db = ManaTools.DB.NoWasteCoin
-local manaInviteDB = ManaTools.DB.ManaInvite
 local cinematicSkipDB = ManaTools.DB.CinematicSkip
 local noInfoDB = ManaTools.DB.NoInfo
 
@@ -41,20 +40,8 @@ mythicPlus:SetScript("OnClick", function(self)
     Refresh()
 end)
 
-local inviteTitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-inviteTitle:SetPoint("TOPLEFT", mythicPlus, "BOTTOMLEFT", 0, -18)
-inviteTitle:SetText("Mana Invite")
-
-local invite = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-invite:SetPoint("TOPLEFT", inviteTitle, "BOTTOMLEFT", 0, -8)
-invite.Text:SetText("Automatically invite guild members who whisper \"mana\"")
-invite:SetScript("OnClick", function(self)
-    manaInviteDB.enabled = self:GetChecked() == true
-    ManaTools.ManaInvite.UpdateEvents()
-end)
-
 local cinematicSkipTitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-cinematicSkipTitle:SetPoint("TOPLEFT", invite, "BOTTOMLEFT", 0, -18)
+cinematicSkipTitle:SetPoint("TOPLEFT", mythicPlus, "BOTTOMLEFT", 0, -18)
 cinematicSkipTitle:SetText("Cinematic Skip")
 
 local cinematicSkip = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
@@ -80,7 +67,6 @@ end)
 panel:SetScript("OnShow", function()
     heroic:SetChecked(db.allowHeroicRaid)
     mythicPlus:SetChecked(db.allowMythicPlus)
-    invite:SetChecked(manaInviteDB.enabled)
     cinematicSkip:SetChecked(cinematicSkipDB.enabled)
     noInfo:SetChecked(noInfoDB.enabled)
 end)

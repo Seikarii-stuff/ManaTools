@@ -22,13 +22,10 @@ local addonNamespace = {}
 loadFile("Bootstrap.lua", "ManaTools", addonNamespace)
 ManaTools = addonNamespace
 loadFile("NoWasteCoin/NoWasteCoin.lua", "ManaTools", ManaTools)
-loadFile("ManaInvite/ManaInvite.lua", "ManaTools", ManaTools)
 loadFile("CinematicSkip/cinematicskip.lua", "ManaTools", ManaTools)
 
 local noWasteDB = ManaTools.DB.NoWasteCoin
 local NoWasteCoin = ManaTools.NoWasteCoin
-local ManaInvite = ManaTools.ManaInvite
-local inviteDB = ManaTools.DB.ManaInvite
 local CinematicSkip = ManaTools.CinematicSkip
 local cinematicSkipDB = ManaTools.DB.CinematicSkip
 
@@ -71,59 +68,8 @@ for _, case in ipairs(cases) do
     appendMetric(results, "NoWasteCoin " .. case.name, elapsed, iterations)
 end
 
-local function benchmarkMembership(size)
-    local members = {}
-    for i = 1, size do members[#members + 1] = "Guild" .. i .. "-Realm" end
-    mock.setGuildMembers(unpackValues(members))
-    ManaInvite:RebuildGuildMembers()
-    local target = "Guild" .. size .. "-Realm"
-    for _ = 1, warmup do ManaInvite.IsGuildMember(target) end
-    return runTimed(function(count)
-        for _ = 1, count do ManaInvite.IsGuildMember(target) end
-    end, iterations)
-end
 
-local function benchmarkWhispers()
-    mock.setGuildMembers("Guild1-Realm", "Guild2-Realm", "Guild3-Realm", "Guild4-Realm")
-    ManaInvite:RebuildGuildMembers()
-    inviteDB.enabled = true
-    local messages = { "mana", "mana pls", "give mana", "MANA", "" }
-    local senders = { "Guild1-Realm", "Guild2-Realm", "NotGuild-Realm", "Guild3-Realm", "NotGuild-Realm" }
-    local length = #messages
-    for i = 1, warmup do
-        local n = ((i - 1) % length) + 1
-        ManaInvite:OnWhisper(messages[n], senders[n])
-    end
-    mock.clearInvites()
-    return runTimed(function(count)
-        for i = 1, count do
-            local n = ((i - 1) % length) + 1
-            ManaInvite:OnWhisper(messages[n], senders[n])
-        end
-    end, iterations)
-end
-
-local function benchmarkRebuild(size)
-    local members = {}
-    for i = 1, size do members[#members + 1] = "Guild" .. i .. "-Realm" end
-    mock.setGuildMembers(unpackValues(members))
-    for _ = 1, warmup do ManaInvite:RebuildGuildMembers() end
-    local count = math.max(1, math.floor(iterations / 100))
-    local elapsed = runTimed(function(rebuildCount)
-        for _ = 1, rebuildCount do ManaInvite:RebuildGuildMembers() end
-    end, count)
-    return elapsed, count
-end
-
-results[#results + 1] = ""
-results[#results + 1] = "ManaInvite benchmarks"
-results[#results + 1] = "--------------------"
-appendMetric(results, "IsGuildMember (100)", benchmarkMembership(100), iterations)
-appendMetric(results, "OnWhisper", benchmarkWhispers(), iterations)
-for _, size in ipairs({100, 500, 1000}) do
-    local elapsed, count = benchmarkRebuild(size)
-    appendMetric(results, "RebuildGuildMembers (" .. size .. ")", elapsed, count)
-end
+-- ManaInvite benchmarks removed (deprecated)
 
 results[#results + 1] = ""
 results[#results + 1] = "CinematicSkip benchmarks"
