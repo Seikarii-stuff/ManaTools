@@ -166,6 +166,94 @@ local function CreateInspectButton()
     UpdateInspectButton()
 end
 
+local function GetSafeTooltipUnit(tooltip)
+    if not tooltip then
+        return
+    end
+
+    local unit
+    if GetTooltipUnit then
+        local _, displayedUnit = GetTooltipUnit(tooltip)
+        if displayedUnit and (not issecretvalue or not issecretvalue(displayedUnit)) then
+            unit = displayedUnit
+        end
+    elseif tooltip.GetUnit then
+        local _, displayedUnit = tooltip:GetUnit()
+        if displayedUnit and (not issecretvalue or not issecretvalue(displayedUnit)) then
+            unit = displayedUnit
+        end
+    end
+
+    if type(unit) == "string" and unit ~= "" then
+        return unit
+    end
+
+    local owner = tooltip.GetOwner and tooltip:GetOwner()
+    if owner and owner.GetAttribute then
+        local ownerUnit = owner:GetAttribute("unit")
+        if ownerUnit and (not issecretvalue or not issecretvalue(ownerUnit)) and type(ownerUnit) == "string" and ownerUnit ~= "" then
+            return ownerUnit
+        end
+    end
+end
+
+local function InstallMythicPlusTooltipHook()
+    if unitHookInstalled then
+        return
+    end
+
+    local function unitHook(self)
+        if db.inspectMode ~= 2 then return end
+
+        if not self then
+            return
+        end
+
+        local unit = GetSafeTooltipUnit(self)
+        if not unit then
+            return
+        end
+
+        if not UnitIsPlayer or UnitIsPlayer(unit) ~= true then
+            return
+        end
+
+        if not C_PlayerInfo or not C_PlayerInfo.GetPlayerMythicPlusRatingSummary then
+            return
+        end
+
+        local summary = C_PlayerInfo.GetPlayerMythicPlusRatingSummary(unit)
+        local score = summary and summary.currentSeasonScore
+        local text
+        if score ~= nil and (not issecretvalue or not issecretvalue(score)) then
+            text = "Mythic+ Rating: " .. tostring(score)
+        else
+            text = "Mythic+ Rating: nil"
+        end
+
+        if self.noInfoMythicPlusLine then
+            return
+        end
+
+        self.noInfoMythicPlusLine = true
+        self:AddLine(text)
+    end
+
+    if TooltipDataProcessor and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Unit then
+        TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, unitHook)
+        unitHookInstalled = true
+    elseif GameTooltip and GameTooltip.HookScript then
+        GameTooltip:HookScript("OnTooltipSetUnit", unitHook)
+        unitHookInstalled = true
+    end
+
+    if GameTooltip and GameTooltip.HookScript then
+        GameTooltip:HookScript("OnTooltipCleared", function(self)
+            self.noInfoMythicPlusLine = nil
+        end)
+    end
+end
+
 local function Enable()
     if wrapperInstalled then
         return
@@ -175,55 +263,7 @@ local function Enable()
     originalOnShow = GameTooltip:GetScript("OnShow")
     GameTooltip:SetScript("OnShow", NoInfoOnShow)
 
-    if not unitHookInstalled and GameTooltip.HookScript then
-        local function unitHook(self)
-            if db.inspectMode ~= 2 then
-                return
-            end
-
-            if not self or not self.GetUnit then
-                return
-            end
-
-            local _, unit = self:GetUnit()
-            if type(unit) ~= "string" or unit == "" then
-                return
-            end
-
-            if not UnitIsPlayer or not UnitIsPlayer(unit) then
-                return
-            end
-
-            if not C_PlayerInfo or not C_PlayerInfo.GetPlayerMythicPlusRatingSummary then
-                return
-            end
-
-            local summary = C_PlayerInfo.GetPlayerMythicPlusRatingSummary(unit)
-            if not summary or summary.currentSeasonScore == nil then
-                return
-            end
-
-            local text = "Mythic+ Rating: " .. tostring(summary.currentSeasonScore)
-            if self.NumLines and self.GetLine then
-                local count = self:NumLines()
-                for i = 1, count do
-                    local line = self.GetLine(self, i)
-                    if line == text then
-                        return
-                    end
-                end
-            end
-
-            if self.AddLine then
-                self:AddLine(text)
-            end
-        end
-
-        local ok = pcall(GameTooltip.HookScript, GameTooltip, "OnTooltipSetUnit", unitHook)
-        if ok then
-            unitHookInstalled = true
-        end
-    end
+    InstallMythicPlusTooltipHook()
 
     wrapperInstalled = true
     UpdateInspectButton()
@@ -239,6 +279,7 @@ local function Disable()
     originalOnShow = nil
     wrapperInstalled = false
     db.inspectMode = 0
+    GameTooltip.noInfoMythicPlusLine = nil
     GameTooltip:Hide()
     UpdateInspectButton()
 end
