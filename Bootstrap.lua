@@ -14,6 +14,13 @@ end
 if ManaTools.DB.NoInfo.enabled == nil then
     ManaTools.DB.NoInfo.enabled = true
 end
+if ManaTools.DB.NoInfo.inspectMode == nil then
+    ManaTools.DB.NoInfo.inspectMode = 0
+elseif ManaTools.DB.NoInfo.inspectMode == true then
+    ManaTools.DB.NoInfo.inspectMode = 1
+elseif ManaTools.DB.NoInfo.inspectMode == false then
+    ManaTools.DB.NoInfo.inspectMode = 0
+end
 ManaTools.NoWasteCoin = ManaTools.NoWasteCoin or {}
 ManaTools.CinematicSkip = ManaTools.CinematicSkip or {}
 ManaTools.NoInfo = ManaTools.NoInfo or {}

@@ -33,16 +33,24 @@ function Tests.Run()
     Assert("button is visible while enabled", button and button:IsShown() == true)
 
     if button then
-        button:Click()
-        Assert("left click toggles inspect mode", db.inspectMode == true)
-        button:Click()
-        Assert("second click disables inspect mode", db.inspectMode == false)
+        _G.IsShiftKeyDown = function() return false end
+        local onClick = button:GetScript("OnClick")
+        if onClick then onClick(button, "LeftButton") end
+        Assert("normal click enables normal inspection state", db.inspectMode == 1)
+
+        _G.IsShiftKeyDown = function() return true end
+        if onClick then onClick(button, "LeftButton") end
+        Assert("shift+left click enables rating state", db.inspectMode == 2)
+
+        _G.IsShiftKeyDown = function() return false end
+        if onClick then onClick(button, "LeftButton") end
+        Assert("normal click disables inspect mode from rating state", db.inspectMode == 0)
     end
 
     db.enabled = false
     ManaTools.NoInfo.Update()
     Assert("disable restores the original handler", GameTooltip:GetScript("OnShow") == originalOnShow)
-    Assert("disable clears inspect mode", db.inspectMode == false)
+    Assert("disable clears inspect mode", db.inspectMode == 0)
 
     print(string.format("[NoInfo TEST] %d passed, %d failed", passed, failed))
     return failed == 0
