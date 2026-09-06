@@ -187,6 +187,7 @@ local function runTest()
         return { currentSeasonScore = 3026, runs = { { bestRunLevel = 12 }, { bestRunLevel = 10 }, { bestRunLevel = 16 } } }
     end
     setUnit("player_unit")
+    GameTooltip.noInfoStatsAdded = nil
     GameTooltip:TriggerScript("OnTooltipSetUnit")
     assert(GameTooltip.tooltipLines == 2, "player with score and runs adds two tooltip lines")
     assert(GameTooltip.lines[1] == "Mythic+ Rating: 3026")
