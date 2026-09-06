@@ -28,8 +28,6 @@ World of Warcraft addon that groups three small quality-of-life features under o
 │   └── NoInfo.lua                 # Tooltip filtering + optional Mythic+ rating
 ├── NoWasteCoin/
 │   └── NoWasteCoin.lua             # Bonus Roll spending guard
-├── Tests/
-│   └── NoInfoTest.lua              # Existing focused test file
 ├── test/
 │   ├── mockwow.lua                 # WoW API mock environment
 │   ├── test_all.lua
