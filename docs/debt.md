@@ -1,1 +1,0 @@
-Crear slashcmd para /mana coin que permita reactivar la tirada para esa moneda en especifico en caso de que el player realmente quiera tirarla.
