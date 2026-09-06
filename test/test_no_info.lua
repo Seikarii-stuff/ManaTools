@@ -182,6 +182,41 @@ local function runTest()
     GameTooltip:TriggerScript("OnTooltipSetUnit")
     assert(GameTooltip.tooltipLines == 0, "nil summary adds no lines")
 
+    -- New: summary with runs should add Highest Key line
+    C_PlayerInfo.GetPlayerMythicPlusRatingSummary = function(unit)
+        return { currentSeasonScore = 3026, runs = { { bestRunLevel = 12 }, { bestRunLevel = 10 }, { bestRunLevel = 16 } } }
+    end
+    setUnit("player_unit")
+    GameTooltip.noInfoStatsAdded = nil
+    GameTooltip:TriggerScript("OnTooltipSetUnit")
+    assert(GameTooltip.tooltipLines == 2, "player with score and runs adds two tooltip lines")
+    assert(GameTooltip.lines[1] == "Mythic+ Rating: 3026")
+    assert(GameTooltip.lines[2] == "Highest Key: +16")
+
+    -- Running the hook again without clearing shouldn't duplicate lines
+    GameTooltip:TriggerScript("OnTooltipSetUnit")
+    assert(GameTooltip.tooltipLines == 2, "re-running hook does not duplicate lines")
+
+    -- No runs: only rating line
+    C_PlayerInfo.GetPlayerMythicPlusRatingSummary = function(unit)
+        return { currentSeasonScore = 2450, runs = {} }
+    end
+    setUnit("player_unit")
+    -- clear flag to simulate a fresh tooltip (OnTooltipCleared would do this)
+    GameTooltip.noInfoStatsAdded = nil
+    GameTooltip:TriggerScript("OnTooltipSetUnit")
+    assert(GameTooltip.tooltipLines == 1, "player with empty runs only adds rating line")
+
+    -- Ensure max is computed and not just first element
+    C_PlayerInfo.GetPlayerMythicPlusRatingSummary = function(unit)
+        return { currentSeasonScore = 4000, runs = { { bestRunLevel = 10 }, { bestRunLevel = 20 }, { bestRunLevel = 15 } } }
+    end
+    setUnit("player_unit")
+    GameTooltip.noInfoStatsAdded = nil
+    GameTooltip:TriggerScript("OnTooltipSetUnit")
+    assert(GameTooltip.tooltipLines == 2, "player with runs adds rating and highest key")
+    assert(GameTooltip.lines[2] == "Highest Key: +20")
+
     db.inspectMode = 2
     namespace.NoInfo.Update()
     namespace.NoInfo.Update()

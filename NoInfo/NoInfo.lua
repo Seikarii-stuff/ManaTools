@@ -232,12 +232,28 @@ local function InstallMythicPlusTooltipHook()
             text = "Mythic+ Rating: nil"
         end
 
-        if self.noInfoMythicPlusLine then
+        if self.noInfoStatsAdded then
             return
         end
 
-        self.noInfoMythicPlusLine = true
+        self.noInfoStatsAdded = true
         self:AddLine(text)
+
+        local highest
+        if summary and summary.runs and type(summary.runs) == "table" then
+            for i = 1, #summary.runs do
+                local run = summary.runs[i]
+                if run and type(run.bestRunLevel) == "number" then
+                    if not highest or run.bestRunLevel > highest then
+                        highest = run.bestRunLevel
+                    end
+                end
+            end
+        end
+
+        if highest and (not issecretvalue or not issecretvalue(highest)) then
+            self:AddLine("Highest Key: +" .. tostring(highest))
+        end
     end
 
     if TooltipDataProcessor and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Unit then
@@ -250,7 +266,7 @@ local function InstallMythicPlusTooltipHook()
 
     if GameTooltip and GameTooltip.HookScript then
         GameTooltip:HookScript("OnTooltipCleared", function(self)
-            self.noInfoMythicPlusLine = nil
+            self.noInfoStatsAdded = nil
         end)
     end
 end
@@ -280,7 +296,7 @@ local function Disable()
     originalOnShow = nil
     wrapperInstalled = false
     db.inspectMode = 0
-    GameTooltip.noInfoMythicPlusLine = nil
+    GameTooltip.noInfoStatsAdded = nil
     GameTooltip:Hide()
     UpdateInspectButton()
 end
