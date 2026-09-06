@@ -1,6 +1,6 @@
 ManaTools benchmark results
 ===========================
-Generated: 2026-09-06 20:46:46 UTC
+Generated: 2026-09-06 21:16:37 UTC
 Iterations per hot path: 100000
 Warmup per hot path: 10000
 
@@ -8,19 +8,19 @@ NoWasteCoin Mythic raid                  0.033000 s       3030303 calls/s       
 NoWasteCoin Heroic raid                  0.038000 s       2631579 calls/s         0.380 us/call
 NoWasteCoin Mythic+                      0.053000 s       1886792 calls/s         0.530 us/call
 NoWasteCoin Mythic 0                     0.053000 s       1886792 calls/s         0.530 us/call
-NoWasteCoin Open world                   0.021000 s       4761905 calls/s         0.210 us/call
+NoWasteCoin Open world                   0.020000 s       5000000 calls/s         0.200 us/call
 
 CinematicSkip benchmarks
 ------------------------
-CINEMATIC_START                          0.056000 s       1785714 calls/s         0.560 us/call
+CINEMATIC_START                          0.055000 s       1818182 calls/s         0.550 us/call
 PLAY_MOVIE                               0.160000 s        625000 calls/s         1.600 us/call
-TALKINGHEAD_REQUESTED                    0.162000 s        617284 calls/s         1.620 us/call
+TALKINGHEAD_REQUESTED                    0.164000 s        609756 calls/s         1.640 us/call
 
 NoInfo benchmarks
 ----------------
 NoInfo OFF                               0.101000 s        990099 calls/s         1.010 us/call
 NoInfo normal inspection                 0.020000 s       5000000 calls/s         0.200 us/call
-NoInfo inspection + rating               0.020000 s       5000000 calls/s         0.200 us/call
+NoInfo inspection + rating               0.021000 s       4761905 calls/s         0.210 us/call
 NoInfo disabled: original OnShow         0.007000 s      14285714 calls/s         0.070 us/call
 
 Allocations: NOT AVAILABLE (Lua benchmark environment does not expose a reliable per-call allocation metric).

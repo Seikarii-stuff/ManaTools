@@ -3,6 +3,7 @@ local ADDON_NAME, ManaTools = ...
 local db = ManaTools.DB.NoWasteCoin
 local cinematicSkipDB = ManaTools.DB.CinematicSkip
 local noInfoDB = ManaTools.DB.NoInfo
+local chatCopyDB = ManaTools.DB.ChatCopy
 
 local function Refresh()
     ManaTools.NoWasteCoin.Update()
@@ -64,11 +65,26 @@ noInfo:SetScript("OnClick", function(self)
     ManaTools.NoInfo.Update()
 end)
 
+local chatCopyTitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+chatCopyTitle:SetPoint("TOPLEFT", noInfo, "BOTTOMLEFT", 0, -18)
+chatCopyTitle:SetText("Chat Copy")
+
+local chatCopy = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+chatCopy:SetPoint("TOPLEFT", chatCopyTitle, "BOTTOMLEFT", 0, -8)
+chatCopy.Text:SetText("Enable Chat Copy (General only)")
+chatCopy:SetScript("OnClick", function(self)
+    chatCopyDB.enabled = self:GetChecked() == true
+    if ManaTools.ChatCopy and ManaTools.ChatCopy.Update then
+        ManaTools.ChatCopy:Update()
+    end
+end)
+
 panel:SetScript("OnShow", function()
     heroic:SetChecked(db.allowHeroicRaid)
     mythicPlus:SetChecked(db.allowMythicPlus)
     cinematicSkip:SetChecked(cinematicSkipDB.enabled)
     noInfo:SetChecked(noInfoDB.enabled)
+    chatCopy:SetChecked(chatCopyDB.enabled)
 end)
 
 if Settings and Settings.RegisterCanvasLayoutCategory then

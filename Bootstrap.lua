@@ -8,11 +8,15 @@ ManaTools.DB = ManaToolsDB
 ManaTools.DB.NoWasteCoin = ManaTools.DB.NoWasteCoin or {}
 ManaTools.DB.CinematicSkip = ManaTools.DB.CinematicSkip or {}
 ManaTools.DB.NoInfo = ManaTools.DB.NoInfo or {}
+ManaTools.DB.ChatCopy = ManaTools.DB.ChatCopy or {}
 if ManaTools.DB.CinematicSkip.enabled == nil then
     ManaTools.DB.CinematicSkip.enabled = true
 end
 if ManaTools.DB.NoInfo.enabled == nil then
     ManaTools.DB.NoInfo.enabled = true
+end
+if ManaTools.DB.ChatCopy.enabled == nil then
+    ManaTools.DB.ChatCopy.enabled = true
 end
 if ManaTools.DB.NoInfo.inspectMode == nil then
     ManaTools.DB.NoInfo.inspectMode = 0
