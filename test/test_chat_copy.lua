@@ -12,18 +12,15 @@ local function loadFile(path, ...)
     chunk(...)
 end
 
--- 1. Default DB value via Bootstrap
-do
-    mock.reset({})
-    local namespace = {}
-    loadFile("Bootstrap.lua", "ManaTools", namespace)
-    assert(namespace.DB.ChatCopy ~= nil, "ChatCopy DB exists")
-    assert(namespace.DB.ChatCopy.enabled == true, "ChatCopy enabled default is true")
+local function clearChatCopyGlobals()
+    _G["ManaToolsChatCopyButton"] = nil
+    _G["ManaToolsChatCopyPopup"] = nil
+    _G["ManaToolsChatCopyEditBox"] = nil
+    _G["UISpecialFrames"] = nil
 end
 
--- Helper to create frames that expose globals like the real UI for assertions.
 local function newFrame()
-    local frame = { scripts = {}, shown = true, text = nil }
+    local frame = { scripts = {}, shown = true, text = nil, highlightCount = 0 }
     function frame:GetScript(event) return self.scripts[event] end
     function frame:SetScript(event, callback) self.scripts[event] = callback end
     function frame:TriggerScript(event, ...)
@@ -42,6 +39,8 @@ local function newFrame()
     function frame:SetFontObject() end
     function frame:SetWidth(w) self.width = w end
     function frame:SetHeight(h) self.height = h end
+    function frame:SetFocus() self.focused = true end
+    function frame:HighlightText() self.highlightCount = self.highlightCount + 1 end
     return frame
 end
 
@@ -51,38 +50,41 @@ local function CreateFrameMock(_, name)
     return f
 end
 
--- 2,3 OFF means no button and no popup
-do
-    -- Prepare environment
-    _G = _G or {}
-    -- provide CreateFrame that registers globals
-    CreateFrame = CreateFrameMock
-    local namespace = { DB = { ChatCopy = { enabled = false } } }
-    -- load module
-    loadFile("ChatCopy/ChatCopy.lua", "ManaTools", namespace)
-    -- module should not create button or popup when disabled
-    assert(_G.ManaToolsChatCopyButton == nil, "No button created when disabled")
-    assert(_G.ManaToolsChatCopyPopup == nil, "No popup created when disabled")
-end
-
--- 4. OFF registers no chat events (use mock event tracker)
+-- 1. Default DB value via Bootstrap
 do
     mock.reset({})
+    local namespace = {}
+    loadFile("Bootstrap.lua", "ManaTools", namespace)
+    assert(namespace.DB.ChatCopy ~= nil, "ChatCopy DB exists")
+    assert(namespace.DB.ChatCopy.enabled == true, "ChatCopy enabled default is true")
+end
+
+-- 2,3 OFF means no button or popup is active
+do
+    clearChatCopyGlobals()
+    CreateFrame = CreateFrameMock
+    local namespace = { DB = { ChatCopy = { enabled = false } } }
+    loadFile("ChatCopy/ChatCopy.lua", "ManaTools", namespace)
+    assert(_G.ManaToolsChatCopyButton == nil, "No button created when initially disabled")
+    assert(_G.ManaToolsChatCopyPopup == nil, "No popup created when initially disabled")
+end
+
+-- 4. OFF registers no chat events
+do
+    clearChatCopyGlobals()
+    mock.reset({})
     loadFile("Bootstrap.lua", "ManaTools", {})
-    -- set DB disabled
     ManaToolsDB.ChatCopy = { enabled = false }
     local namespace = { DB = ManaToolsDB }
-    -- load module using mock environment
     loadFile("ChatCopy/ChatCopy.lua", "ManaTools", namespace)
-    -- Ensure there are no CHAT_MSG_* events registered
     for k,_ in pairs(mock.events) do
         assert(not k:match("^CHAT_MSG_"), "No CHAT_MSG_* events should be registered when disabled")
     end
 end
 
--- 6,7 ON creates a single button labelled 'copy'
+-- 5,6 ON creates a single button labelled 'copy'
 do
-    -- Use CreateFrame that exposes globals so we can inspect button
+    clearChatCopyGlobals()
     CreateFrame = CreateFrameMock
     local namespace = { DB = { ChatCopy = { enabled = true } } }
     _G["ChatFrame1"] = newFrame()
@@ -90,22 +92,25 @@ do
     local btn = _G.ManaToolsChatCopyButton
     assert(btn ~= nil, "Button created when enabled")
     assert(btn.fs and btn.fs.text == "copy", "Button fontstring contains 'copy'")
+    assert(btn.shown == true, "Button is shown when enabled")
 end
 
--- 9. No processing in standby: module should NOT call GetMessageInfo on load
+-- 7. No processing in standby
 do
+    clearChatCopyGlobals()
     CreateFrame = CreateFrameMock
     local general = newFrame()
     function general:GetNumMessages() return 0 end
-    function general:GetMessageInfo(i) error("GetMessageInfo should not be called until click") end
+    function general:GetMessageInfo() error("GetMessageInfo should not be called until click") end
     _G["ChatFrame1"] = general
     local namespace = { DB = { ChatCopy = { enabled = true } } }
-    local ok, err = pcall(function() loadFile("ChatCopy/ChatCopy.lua", "ManaTools", namespace) end)
+    local ok = pcall(function() loadFile("ChatCopy/ChatCopy.lua", "ManaTools", namespace) end)
     assert(ok, "Module loading must not call GetMessageInfo")
 end
 
--- 10,11 Click collects messages and respects limit
+-- 8,9 Click collects messages and respects limit
 do
+    clearChatCopyGlobals()
     CreateFrame = CreateFrameMock
     local general = newFrame()
     function general:GetNumMessages() return 5 end
@@ -114,36 +119,89 @@ do
     local namespace = { DB = { ChatCopy = { enabled = true } } }
     loadFile("ChatCopy/ChatCopy.lua", "ManaTools", namespace)
     local btn = _G.ManaToolsChatCopyButton
-    -- simulate click
-    btn.scripts.OnClick(btn)
+    btn:TriggerScript("OnClick")
     local popup = _G.ManaToolsChatCopyPopup
     assert(popup ~= nil and popup.edit and popup.edit.text ~= nil, "Popup created and editbox filled on click")
     assert(popup.edit.text:match("msg1"), "Popup contains chat text from general")
+    assert(popup.edit.highlightCount == 1, "HighlightText is called when available")
 end
 
--- 13. Escape closes popup
+-- 10. HighlightText is optional for compatibility with mocks/APIs
 do
-    -- reuse existing popup
+    local popup = _G.ManaToolsChatCopyPopup
+    popup.edit.HighlightText = nil
+    local ok = pcall(function() namespace.ChatCopy:OpenPopup() end)
+    assert(ok, "OpenPopup must work without HighlightText")
+end
+
+-- 11. Escape closes popup and popup is registered in UISpecialFrames
+do
     local popup = _G.ManaToolsChatCopyPopup
     assert(popup ~= nil, "popup exists for escape test")
-    if popup.edit and popup.edit.TriggerScript then
-        popup.edit:TriggerScript("OnEscapePressed")
-        assert(popup.shown == false, "Escape hides the popup")
-    end
+    assert(UISpecialFrames and UISpecialFrames[1] == "ManaToolsChatCopyPopup", "Popup is registered in UISpecialFrames")
+    popup.edit:TriggerScript("OnEscapePressed")
+    assert(popup.shown == false, "Escape hides the popup")
 end
 
--- 14. ON/OFF repeated does not duplicate
+-- 12. Disable is idempotent and clears all module-created scripts/active UI
 do
+    clearChatCopyGlobals()
     CreateFrame = CreateFrameMock
+    local general = newFrame()
+    function general:GetNumMessages() return 1 end
+    function general:GetMessageInfo() return "msg" end
+    _G["ChatFrame1"] = general
     local namespace = { DB = { ChatCopy = { enabled = true } } }
     loadFile("ChatCopy/ChatCopy.lua", "ManaTools", namespace)
     local module = namespace.ChatCopy
-    module:Update()
-    module:Update()
+    local button = module.button
+    button:TriggerScript("OnClick")
+    local popup = module.popup
+    assert(button.shown and popup.shown, "UI is active before Disable")
+
+    module:Disable()
+    module:Disable()
+    module:Disable()
+
+    assert(module._enabled == false, "Disable leaves module disabled")
+    assert(button.shown == false, "Button remains hidden after repeated Disable")
+    assert(button:GetScript("OnClick") == nil, "Button has no active script after repeated Disable")
+    assert(popup.shown == false, "Popup remains hidden after repeated Disable")
+    assert(popup.edit:GetScript("OnEscapePressed") == nil, "Popup has no active script after repeated Disable")
+end
+
+-- 13. Repeated OFF/ON cycles reuse one button and never duplicate UI
+do
+    clearChatCopyGlobals()
+    CreateFrame = CreateFrameMock
+    local general = newFrame()
+    function general:GetNumMessages() return 0 end
+    _G["ChatFrame1"] = general
+    local namespace = { DB = { ChatCopy = { enabled = false } } }
+    loadFile("ChatCopy/ChatCopy.lua", "ManaTools", namespace)
+    local module = namespace.ChatCopy
+
     module:Disable()
     module:Enable()
+    local firstButton = module.button
     module:Disable()
-    assert(_G.ManaToolsChatCopyButton == nil or module.button == nil or module._enabled == false, "Final state after toggles is disabled with no lingering button")
+    module:Enable()
+    local secondButton = module.button
+    module:Disable()
+    module:Enable()
+    local thirdButton = module.button
+    module:Disable()
+
+    assert(firstButton == secondButton and secondButton == thirdButton, "ON/OFF cycles reuse the same button")
+    assert(_G.ManaToolsChatCopyButton == firstButton, "Only one button instance exists")
+    assert(firstButton.shown == false, "Final OFF leaves button hidden")
+    assert(firstButton:GetScript("OnClick") == nil, "Final OFF leaves button script inactive")
+
+    local popup = module:CreatePopup()
+    module:DestroyPopup()
+    module:DestroyPopup()
+    assert(popup.shown == false, "Repeated popup cleanup leaves it hidden")
+    assert(popup.edit:GetScript("OnEscapePressed") == nil, "Repeated popup cleanup leaves scripts inactive")
 end
 
 print("ChatCopy tests passed")
