@@ -32,6 +32,10 @@ local function newFrame()
     function frame:SetPoint(...) self.point = {...} end
     function frame:SetSize(w, h) self.width, self.height = w, h end
     function frame:EnableMouse(v) self.mouse = v end
+    function frame:SetMovable(v) self.movable = v end
+    function frame:RegisterForDrag(...) self.dragButtons = {...} end
+    function frame:StartMoving() self.moving = true end
+    function frame:StopMovingOrSizing() self.moving = false; self.stoppedMoving = true end
     function frame:SetText(v) self.text = v end
     function frame:GetText() return self.text end
     function frame:SetCursorPosition(v) self.cursorPosition = v end
@@ -133,13 +137,22 @@ do
     _G.ChatCopyTestModule = namespace.ChatCopy
 end
 
--- 10. Popup is a framed window with scrollable, read-only copy text and a close button
+-- 10. Popup is a framed window with scrollable, read-only copy text, close button and drag support
 do
     local popup = _G.ManaToolsChatCopyPopup
     assert(popup.backdrop ~= nil, "Popup has a background/border backdrop")
     assert(popup.scroll ~= nil and popup.scroll.scrollChild == popup.edit, "Popup uses a ScrollFrame for the editbox")
     assert(popup.close ~= nil, "Popup has a close button")
     assert(popup.close:GetScript("OnClick") ~= nil, "Close button has an active click handler")
+    assert(popup.movable == true, "Popup is movable")
+    assert(popup.dragButtons and popup.dragButtons[1] == "LeftButton", "Popup registers left-button dragging")
+    assert(popup:GetScript("OnDragStart") ~= nil, "Popup has an OnDragStart handler")
+    assert(popup:GetScript("OnDragStop") ~= nil, "Popup has an OnDragStop handler")
+
+    popup:TriggerScript("OnDragStart")
+    assert(popup.moving == true, "OnDragStart starts moving the popup")
+    popup:TriggerScript("OnDragStop")
+    assert(popup.moving == false and popup.stoppedMoving == true, "OnDragStop stops moving the popup")
 
     local originalText = popup.edit.text
     popup.edit:SetText("user input should not persist")
@@ -191,6 +204,8 @@ do
     assert(popup.edit:GetScript("OnEscapePressed") == nil, "Popup has no active escape script after repeated Disable")
     assert(popup.edit:GetScript("OnTextChanged") == nil, "Popup has no active text-change script after repeated Disable")
     assert(popup.close:GetScript("OnClick") == nil, "Close button has no active script after Disable")
+    assert(popup:GetScript("OnDragStart") == nil, "Popup has no active drag-start script after Disable")
+    assert(popup:GetScript("OnDragStop") == nil, "Popup has no active drag-stop script after Disable")
 end
 
 -- 14. Disable also cleans up when internal references are stale
@@ -216,6 +231,8 @@ do
     assert(popup.shown == false, "Disable hides a popup found through the global")
     assert(popup.edit:GetScript("OnEscapePressed") == nil, "Disable clears a stale popup escape script")
     assert(popup.close:GetScript("OnClick") == nil, "Disable clears a stale popup close script")
+    assert(popup:GetScript("OnDragStart") == nil, "Disable clears a stale popup drag-start script")
+    assert(popup:GetScript("OnDragStop") == nil, "Disable clears a stale popup drag-stop script")
 end
 
 -- 15. Repeated OFF/ON cycles reuse one button and never duplicate UI
@@ -268,6 +285,8 @@ do
     assert(popup.close:GetScript("OnClick") ~= nil, "Close button is restored after re-enable")
     assert(popup.edit:GetScript("OnTextChanged") ~= nil, "Read-only protection is restored after re-enable")
     assert(popup.edit:GetScript("OnEscapePressed") ~= nil, "Escape handler is restored after re-enable")
+    assert(popup:GetScript("OnDragStart") ~= nil, "Drag-start handler is restored after re-enable")
+    assert(popup:GetScript("OnDragStop") ~= nil, "Drag-stop handler is restored after re-enable")
 end
 
 print("ChatCopy tests passed")
