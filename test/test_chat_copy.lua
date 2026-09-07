@@ -118,7 +118,7 @@ do
     assert(ok, "Module loading must not call GetMessageInfo")
 end
 
--- 8,9 Click collects messages and selects the text
+-- 8,9 Click collects all available chat messages without auto-selection
 do
     clearChatCopyGlobals()
     CreateFrame = CreateFrameMock
@@ -133,7 +133,8 @@ do
     local popup = _G.ManaToolsChatCopyPopup
     assert(popup ~= nil and popup.edit and popup.edit.text ~= nil, "Popup created and editbox filled on click")
     assert(popup.edit.text:match("msg1"), "Popup contains chat text from general")
-    assert(popup.edit.highlightCount == 1, "HighlightText is called when available")
+    assert(popup.edit.text:match("msg5"), "Popup includes the newest chat message")
+    assert(popup.edit.highlightCount == 0, "Automatic HighlightText is disabled")
     _G.ChatCopyTestModule = namespace.ChatCopy
 end
 

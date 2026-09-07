@@ -5,7 +5,6 @@ local ChatCopy = ManaTools.ChatCopy or {}
 ManaTools.ChatCopy = ChatCopy
 
 -- Config
-local MAX_LINES = 200
 local BUTTON_NAME = "ManaToolsChatCopyButton"
 local POPUP_NAME = "ManaToolsChatCopyPopup"
 local EDITBOX_NAME = "ManaToolsChatCopyEditBox"
@@ -130,9 +129,8 @@ function ChatCopy:BuildTextFromGeneral()
     end
 
     local max = general:GetNumMessages() or 0
-    local start = math.max(1, max - (MAX_LINES - 1))
     local parts = {}
-    for i = start, max do
+    for i = 1, max do
         local msg = nil
         -- GetMessageInfo may return multiple values; first is the message.
         -- WoW can mark secret/hidden values with a sentinel that should never be copied.
@@ -230,12 +228,9 @@ function ChatCopy:OpenPopup()
         edit:SetScript("OnEscapePressed", function()
             popup:Hide()
         end)
-        -- Mock environments may not implement SetFocus/HighlightText; call if available.
+        -- Keep the copied text visible without pre-selecting it.
         if edit.SetFocus then
             edit:SetFocus()
-        end
-        if edit.HighlightText then
-            edit:HighlightText()
         end
     end
 
