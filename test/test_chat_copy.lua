@@ -16,6 +16,8 @@ local function clearChatCopyGlobals()
     _G["ManaToolsChatCopyButton"] = nil
     _G["ManaToolsChatCopyPopup"] = nil
     _G["ManaToolsChatCopyEditBox"] = nil
+    _G["ManaToolsChatCopyScrollFrame"] = nil
+    _G["ManaToolsChatCopyCloseButton"] = nil
     _G["UISpecialFrames"] = nil
 end
 
@@ -31,8 +33,12 @@ local function newFrame()
     function frame:SetSize(w, h) self.width, self.height = w, h end
     function frame:EnableMouse(v) self.mouse = v end
     function frame:SetText(v) self.text = v end
+    function frame:GetText() return self.text end
+    function frame:SetCursorPosition(v) self.cursorPosition = v end
     function frame:Hide() self.shown = false end
     function frame:Show() self.shown = true end
+    function frame:SetBackdrop(v) self.backdrop = v end
+    function frame:SetScrollChild(v) self.scrollChild = v end
     function frame:CreateFontString() local f = newFrame(); function f:SetPoint(...) end; function f:SetText(t) f.text = t end; return f end
     function frame:SetMultiLine() end
     function frame:SetAutoFocus() end
@@ -127,7 +133,21 @@ do
     _G.ChatCopyTestModule = namespace.ChatCopy
 end
 
--- 10. HighlightText is optional for compatibility with mocks/APIs
+-- 10. Popup is a framed window with scrollable, read-only copy text and a close button
+do
+    local popup = _G.ManaToolsChatCopyPopup
+    assert(popup.backdrop ~= nil, "Popup has a background/border backdrop")
+    assert(popup.scroll ~= nil and popup.scroll.scrollChild == popup.edit, "Popup uses a ScrollFrame for the editbox")
+    assert(popup.close ~= nil, "Popup has a close button")
+    assert(popup.close:GetScript("OnClick") ~= nil, "Close button has an active click handler")
+
+    local originalText = popup.edit.text
+    popup.edit:SetText("user input should not persist")
+    popup.edit:TriggerScript("OnTextChanged", true)
+    assert(popup.edit.text == originalText, "User input cannot modify the copied chat text")
+end
+
+-- 11. HighlightText is optional for compatibility with mocks/APIs
 do
     local popup = _G.ManaToolsChatCopyPopup
     popup.edit.HighlightText = nil
@@ -135,7 +155,7 @@ do
     assert(ok, "OpenPopup must work without HighlightText")
 end
 
--- 11. Escape closes popup and popup is registered in UISpecialFrames
+-- 12. Escape closes popup and popup is registered in UISpecialFrames
 do
     local popup = _G.ManaToolsChatCopyPopup
     assert(popup ~= nil, "popup exists for escape test")
@@ -144,7 +164,7 @@ do
     assert(popup.shown == false, "Escape hides the popup")
 end
 
--- 12. Disable is idempotent and clears all module-created scripts/active UI
+-- 13. Disable is idempotent and clears all module-created scripts/active UI
 do
     clearChatCopyGlobals()
     CreateFrame = CreateFrameMock
@@ -168,10 +188,12 @@ do
     assert(button.shown == false, "Button remains hidden after repeated Disable")
     assert(button:GetScript("OnClick") == nil, "Button has no active script after repeated Disable")
     assert(popup.shown == false, "Popup remains hidden after repeated Disable")
-    assert(popup.edit:GetScript("OnEscapePressed") == nil, "Popup has no active script after repeated Disable")
+    assert(popup.edit:GetScript("OnEscapePressed") == nil, "Popup has no active escape script after repeated Disable")
+    assert(popup.edit:GetScript("OnTextChanged") == nil, "Popup has no active text-change script after repeated Disable")
+    assert(popup.close:GetScript("OnClick") == nil, "Close button has no active script after Disable")
 end
 
--- 13. Disable also cleans up when internal references are stale
+-- 14. Disable also cleans up when internal references are stale
 do
     clearChatCopyGlobals()
     CreateFrame = CreateFrameMock
@@ -192,10 +214,11 @@ do
     assert(button.shown == false, "Disable hides a button found through the global")
     assert(button:GetScript("OnClick") == nil, "Disable clears a stale button script")
     assert(popup.shown == false, "Disable hides a popup found through the global")
-    assert(popup.edit:GetScript("OnEscapePressed") == nil, "Disable clears a stale popup script")
+    assert(popup.edit:GetScript("OnEscapePressed") == nil, "Disable clears a stale popup escape script")
+    assert(popup.close:GetScript("OnClick") == nil, "Disable clears a stale popup close script")
 end
 
--- 14. Repeated OFF/ON cycles reuse one button and never duplicate UI
+-- 15. Repeated OFF/ON cycles reuse one button and never duplicate UI
 do
     clearChatCopyGlobals()
     CreateFrame = CreateFrameMock
