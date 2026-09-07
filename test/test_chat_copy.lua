@@ -178,6 +178,45 @@ do
     assert(popup.shown == false, "Escape hides the popup")
 end
 
+-- 12b. Close via X clears temporary text and empties EditBox
+do
+    local module = _G.ChatCopyTestModule
+    assert(module, "ChatCopy module available for close tests")
+    module:OpenPopup()
+    local popup = module.popup
+    assert(popup and popup.edit and popup.edit._chatCopyText ~= nil, "Popup edit has _chatCopyText before close")
+    popup.close:TriggerScript("OnClick")
+    assert(popup.edit._chatCopyText == nil, "Close button clears _chatCopyText")
+    assert((popup.edit.text or "") == "", "EditBox text is empty after close")
+    assert(popup.shown == false, "Popup is hidden after close")
+end
+
+-- 12c. Escape clears temporary text and empties EditBox
+do
+    local module = _G.ChatCopyTestModule
+    module:OpenPopup()
+    local popup = module.popup
+    assert(popup and popup.edit and popup.edit._chatCopyText ~= nil, "Popup edit has _chatCopyText before escape clear")
+    popup.edit:TriggerScript("OnEscapePressed")
+    assert(popup.edit._chatCopyText == nil, "Escape clears _chatCopyText")
+    assert((popup.edit.text or "") == "", "EditBox text is empty after escape")
+    assert(popup.shown == false, "Popup is hidden after escape clear")
+end
+
+-- 12d. Reopen rebuilds text via BuildTextFromGeneral
+do
+    local module = _G.ChatCopyTestModule
+    -- Set a predictable general for reopen
+    local general = newFrame()
+    function general:GetNumMessages() return 3 end
+    function general:GetMessageInfo(i) return "reopen" .. tostring(i) end
+    _G["ChatFrame1"] = general
+    module:OpenPopup()
+    local popup = module.popup
+    assert(popup.edit and popup.edit._chatCopyText ~= nil, "Reopen sets new _chatCopyText")
+    assert(popup.edit.text:match("reopen1"), "Reopen rebuilds text from general")
+end
+
 -- 13. Disable is idempotent and clears all module-created scripts/active UI
 do
     clearChatCopyGlobals()

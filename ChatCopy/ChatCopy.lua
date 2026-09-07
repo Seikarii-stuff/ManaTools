@@ -25,6 +25,16 @@ local function RegisterEscapeFrame(name)
     table.insert(UISpecialFrames, name)
 end
 
+local function ClearPopupText(popup)
+    if not popup or not popup.edit then return end
+    local edit = popup.edit
+    -- Clear temporary stored text and the visible contents
+    edit._chatCopyText = nil
+    if edit.SetText then
+        edit:SetText("")
+    end
+end
+
 local function ClearButtonScripts(btn)
     if btn and btn.SetScript then
         btn:SetScript("OnClick", nil)
@@ -156,6 +166,7 @@ function ChatCopy:CreatePopup()
         ConfigurePopupDrag(popup)
         if popup.close and popup.close.SetScript then
             popup.close:SetScript("OnClick", function()
+                ClearPopupText(popup)
                 popup:Hide()
             end)
         end
@@ -189,6 +200,7 @@ function ChatCopy:CreatePopup()
     local close = CreateFrame("Button", CLOSE_BUTTON_NAME, popup, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", popup, "TOPRIGHT", -4, -4)
     close:SetScript("OnClick", function()
+        ClearPopupText(popup)
         popup:Hide()
     end)
     popup.close = close
@@ -226,6 +238,7 @@ function ChatCopy:OpenPopup()
         edit:SetText(text)
         ProtectEditBox(edit)
         edit:SetScript("OnEscapePressed", function()
+            ClearPopupText(popup)
             popup:Hide()
         end)
         -- Keep the copied text visible without pre-selecting it.
