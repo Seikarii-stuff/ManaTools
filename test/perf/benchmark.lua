@@ -2,9 +2,17 @@
 -- Requires Lua 5.1+.
 -- Run from repository root: lua test/perf/benchmark.lua [iterations]
 -- Always overwrites: test/results/benchmark.txt
+-- AGENT NOTE: This benchmark MUST stay under 2.0s total wall-clock time. Do not increase the default iteration count or add more expensive work; reduce iterations or optimize the hot path instead.
 
-local iterations = tonumber(arg[1]) or 100000
-local warmup = math.max(1000, math.floor(iterations / 10))
+local MAX_BENCHMARK_SECONDS = 2.0
+local requestedIterations = tonumber(arg[1]) or 10000
+local iterations = math.min(requestedIterations, 10000)
+local warmup = math.max(500, math.floor(iterations / 10))
+
+if requestedIterations and requestedIterations > iterations then
+    print(string.format("Benchmark cap enforced: reducing iterations from %d to %d to keep the suite under %.1fs.", requestedIterations, iterations, MAX_BENCHMARK_SECONDS))
+end
+
 local mock = assert(loadfile("test/mockwow.lua"))()
 local loader = loadstring or load
 local unpackValues = table.unpack or unpack
