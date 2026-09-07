@@ -10,6 +10,7 @@ Bootstrap.lua
 NoWasteCoin\NoWasteCoin.lua
 CinematicSkip\cinematicskip.lua
 NoInfo\NoInfo.lua
+ChatCopy\ChatCopy.lua
 Options.lua
 SlashCmd.lua
 
