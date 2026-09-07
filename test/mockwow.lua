@@ -42,6 +42,7 @@ local function newFrame()
     function frame:RegisterForDrag(...) self.dragButtons = {...} end
     function frame:EnableMouse(value) self.mouseEnabled = value end
     function frame:SetText(value) self.text = value end
+    function frame:GetText() return self.text end
     function frame:SetJustifyH() end
     function frame:SetChecked(value) self.checked = value end
     function frame:GetChecked() return self.checked end
@@ -49,6 +50,19 @@ local function newFrame()
     function frame:Disable() self.enabled = false end
     function frame:SetAlpha(value) self.alpha = value end
     function frame:SetShown(value) self.shown = value end
+    function frame:SetMovable(value) self.movable = value end
+    function frame:StartMoving() self.moving = true end
+    function frame:StopMovingOrSizing() self.moving = false; self.stoppedMoving = true end
+    function frame:SetBackdrop(value) self.backdrop = value end
+    function frame:SetScrollChild(value) self.scrollChild = value end
+    function frame:SetMultiLine(value) self.multiLine = value end
+    function frame:SetAutoFocus(value) self.autoFocus = value end
+    function frame:SetFontObject(value) self.fontObject = value end
+    function frame:SetWidth(value) self.width = value end
+    function frame:SetHeight(value) self.height = value end
+    function frame:SetCursorPosition(value) self.cursorPosition = value end
+    function frame:HighlightText() self.highlighted = true end
+    function frame:SetFocus() self.focused = true end
     function frame:CreateFontString() return newFrame() end
     function frame:CreateTexture() return newFrame() end
     function frame:SetAtlas(name, useAtlasSize) self.atlas, self.useAtlasSize = name, useAtlasSize end

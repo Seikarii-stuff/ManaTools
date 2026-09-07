@@ -23,11 +23,14 @@ loadFile("Bootstrap.lua", "ManaTools", addonNamespace)
 ManaTools = addonNamespace
 loadFile("NoWasteCoin/NoWasteCoin.lua", "ManaTools", ManaTools)
 loadFile("CinematicSkip/cinematicskip.lua", "ManaTools", ManaTools)
+loadFile("ChatCopy/ChatCopy.lua", "ManaTools", ManaTools)
 
 local noWasteDB = ManaTools.DB.NoWasteCoin
 local NoWasteCoin = ManaTools.NoWasteCoin
 local CinematicSkip = ManaTools.CinematicSkip
 local cinematicSkipDB = ManaTools.DB.CinematicSkip
+local ChatCopy = ManaTools.ChatCopy
+local chatCopyDB = ManaTools.DB.ChatCopy
 
 local function runTimed(fn, count)
     local start = os.clock()
@@ -116,6 +119,77 @@ end
 appendMetric(results, "CINEMATIC_START", benchmarkCinematicStart(), iterations)
 appendMetric(results, "PLAY_MOVIE", benchmarkPlayMovie(), iterations)
 appendMetric(results, "TALKINGHEAD_REQUESTED", benchmarkTalkingHead(), iterations)
+
+results[#results + 1] = ""
+results[#results + 1] = "ChatCopy benchmarks"
+results[#results + 1] = "-------------------"
+
+local function benchmarkChatCopyBuildText()
+    local total = 200
+    local messages = {}
+    for i = 1, total do
+        messages[i] = "chat line " .. i .. " lorem ipsum dolor sit amet consectetur adipiscing elit"
+    end
+
+    local chatFrame = CreateFrame("Frame", "ChatFrame1")
+    function chatFrame:GetNumMessages() return total end
+    function chatFrame:GetMessageInfo(index)
+        return messages[index]
+    end
+    _G.ChatFrame1 = chatFrame
+    _G.DEFAULT_CHAT_FRAME = chatFrame
+
+    chatCopyDB.enabled = true
+    ChatCopy:Update()
+    for _ = 1, warmup do ChatCopy:BuildTextFromGeneral() end
+
+    local elapsed = runTimed(function(count)
+        for _ = 1, count do
+            ChatCopy:BuildTextFromGeneral()
+        end
+    end, iterations)
+
+    return elapsed
+end
+
+local function benchmarkChatCopyOpenPopup()
+    local total = 200
+    local messages = {}
+    for i = 1, total do
+        messages[i] = "copy line " .. i .. " vel pretium nisl suspendisse at ultrices urna"
+    end
+
+    local chatFrame = CreateFrame("Frame", "ChatFrame1")
+    function chatFrame:GetNumMessages() return total end
+    function chatFrame:GetMessageInfo(index)
+        return messages[index]
+    end
+    _G.ChatFrame1 = chatFrame
+    _G.DEFAULT_CHAT_FRAME = chatFrame
+
+    chatCopyDB.enabled = true
+    ChatCopy:Update()
+    for _ = 1, warmup do
+        ChatCopy:OpenPopup()
+        if ChatCopy.popup and ChatCopy.popup.Hide then
+            ChatCopy.popup:Hide()
+        end
+    end
+
+    local elapsed = runTimed(function(count)
+        for _ = 1, count do
+            ChatCopy:OpenPopup()
+            if ChatCopy.popup and ChatCopy.popup.Hide then
+                ChatCopy.popup:Hide()
+            end
+        end
+    end, iterations)
+
+    return elapsed
+end
+
+appendMetric(results, "ChatCopy BUILD_TEXT_FROM_GENERAL", benchmarkChatCopyBuildText(), iterations)
+appendMetric(results, "ChatCopy OPEN_POPUP", benchmarkChatCopyOpenPopup(), iterations)
 
 results[#results + 1] = ""
 results[#results + 1] = "NoInfo benchmarks"

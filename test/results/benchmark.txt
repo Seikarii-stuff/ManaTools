@@ -1,26 +1,31 @@
 ManaTools benchmark results
 ===========================
-Generated: 2026-09-06 21:16:37 UTC
+Generated: 2026-09-07 03:02:26 UTC
 Iterations per hot path: 100000
 Warmup per hot path: 10000
 
-NoWasteCoin Mythic raid                  0.033000 s       3030303 calls/s         0.330 us/call
-NoWasteCoin Heroic raid                  0.038000 s       2631579 calls/s         0.380 us/call
-NoWasteCoin Mythic+                      0.053000 s       1886792 calls/s         0.530 us/call
-NoWasteCoin Mythic 0                     0.053000 s       1886792 calls/s         0.530 us/call
+NoWasteCoin Mythic raid                  0.032000 s       3125000 calls/s         0.320 us/call
+NoWasteCoin Heroic raid                  0.039000 s       2564103 calls/s         0.390 us/call
+NoWasteCoin Mythic+                      0.052000 s       1923077 calls/s         0.520 us/call
+NoWasteCoin Mythic 0                     0.051000 s       1960784 calls/s         0.510 us/call
 NoWasteCoin Open world                   0.020000 s       5000000 calls/s         0.200 us/call
 
 CinematicSkip benchmarks
 ------------------------
-CINEMATIC_START                          0.055000 s       1818182 calls/s         0.550 us/call
-PLAY_MOVIE                               0.160000 s        625000 calls/s         1.600 us/call
-TALKINGHEAD_REQUESTED                    0.164000 s        609756 calls/s         1.640 us/call
+CINEMATIC_START                          0.054000 s       1851852 calls/s         0.540 us/call
+PLAY_MOVIE                               0.157000 s        636943 calls/s         1.570 us/call
+TALKINGHEAD_REQUESTED                    0.160000 s        625000 calls/s         1.600 us/call
+
+ChatCopy benchmarks
+-------------------
+ChatCopy BUILD_TEXT_FROM_GENERAL         9.833000 s         10170 calls/s        98.330 us/call
+ChatCopy OPEN_POPUP                      9.989000 s         10011 calls/s        99.890 us/call
 
 NoInfo benchmarks
 ----------------
-NoInfo OFF                               0.101000 s        990099 calls/s         1.010 us/call
-NoInfo normal inspection                 0.020000 s       5000000 calls/s         0.200 us/call
-NoInfo inspection + rating               0.021000 s       4761905 calls/s         0.210 us/call
+NoInfo OFF                               0.100000 s       1000000 calls/s         1.000 us/call
+NoInfo normal inspection                 0.021000 s       4761905 calls/s         0.210 us/call
+NoInfo inspection + rating               0.020000 s       5000000 calls/s         0.200 us/call
 NoInfo disabled: original OnShow         0.007000 s      14285714 calls/s         0.070 us/call
 
 Allocations: NOT AVAILABLE (Lua benchmark environment does not expose a reliable per-call allocation metric).
