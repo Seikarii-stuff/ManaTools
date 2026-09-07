@@ -9,6 +9,8 @@ local MAX_LINES = 200
 local BUTTON_NAME = "ManaToolsChatCopyButton"
 local POPUP_NAME = "ManaToolsChatCopyPopup"
 local EDITBOX_NAME = "ManaToolsChatCopyEditBox"
+local SCROLL_NAME = "ManaToolsChatCopyScrollFrame"
+local CLOSE_BUTTON_NAME = "ManaToolsChatCopyCloseButton"
 
 local function GetGeneralChatFrame()
     return _G["ChatFrame1"] or DEFAULT_CHAT_FRAME or _G["DEFAULT_CHAT_FRAME"]
@@ -119,22 +121,64 @@ function ChatCopy:CreatePopup()
         return popup
     end
 
-    popup = CreateFrame("Frame", POPUP_NAME, UIParent)
-    popup:SetSize(600, 300)
+    popup = CreateFrame("Frame", POPUP_NAME, UIParent, "BackdropTemplate")
+    popup:SetSize(600, 320)
     popup:SetPoint("CENTER", UIParent, "CENTER", -100, 100)
     popup:EnableMouse(true)
 
-    local edit = CreateFrame("EditBox", EDITBOX_NAME, popup)
+    if popup.SetBackdrop then
+        popup:SetBackdrop({
+            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+            tile = true,
+            tileSize = 32,
+            edgeSize = 32,
+            insets = { left = 11, right = 12, top = 12, bottom = 11 },
+        })
+    end
+
+    local title = popup:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    title:SetPoint("TOP", popup, "TOP", 0, -12)
+    title:SetText("Chat Copy")
+    popup.title = title
+
+    local close = CreateFrame("Button", CLOSE_BUTTON_NAME, popup, "UIPanelCloseButton")
+    close:SetPoint("TOPRIGHT", popup, "TOPRIGHT", -4, -4)
+    close:SetScript("OnClick", function()
+        popup:Hide()
+    end)
+    popup.close = close
+
+    local scroll = CreateFrame("ScrollFrame", SCROLL_NAME, popup, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", popup, "TOPLEFT", 14, -38)
+    scroll:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -34, 14)
+    popup.scroll = scroll
+
+    local edit = CreateFrame("EditBox", EDITBOX_NAME, scroll)
     edit:SetMultiLine(true)
     edit:SetAutoFocus(false)
     edit:SetFontObject("ChatFontNormal")
-    edit:SetWidth(560)
+    edit:SetWidth(550)
     edit:SetHeight(260)
-    edit:SetPoint("TOPLEFT", popup, "TOPLEFT", 10, -10)
-    edit:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -10, 10)
     edit:EnableMouse(true)
+    edit:SetPoint("TOPLEFT", scroll, "TOPLEFT", 0, 0)
+
+    -- Keep the EditBox selectable so the user can highlight and Ctrl+C the text,
+    -- but immediately restore the snapshot if any user input tries to modify it.
+    edit:SetScript("OnTextChanged", function(self, userInput)
+        if userInput and self._chatCopyText ~= nil and self:GetText() ~= self._chatCopyText then
+            self:SetText(self._chatCopyText)
+            if self.SetCursorPosition then
+                self:SetCursorPosition(0)
+            end
+            if self.HighlightText then
+                self:HighlightText()
+            end
+        end
+    end)
 
     popup.edit = edit
+    scroll:SetScrollChild(edit)
     self.popup = popup
     RegisterEscapeFrame(POPUP_NAME)
     return popup
@@ -147,8 +191,9 @@ function ChatCopy:OpenPopup()
     local edit = popup and popup.edit
 
     if edit then
+        edit._chatCopyText = text
         edit:SetText(text)
-        edit:SetScript("OnEscapePressed", function(self)
+        edit:SetScript("OnEscapePressed", function()
             popup:Hide()
         end)
         -- Mock environments may not implement SetFocus/HighlightText; call if available.
@@ -169,26 +214,24 @@ function ChatCopy:DestroyPopup()
     local popup = self.popup
     local globalPopup = _G[POPUP_NAME]
 
-    if popup and popup.edit and popup.edit.SetScript then
-        popup.edit:SetScript("OnEscapePressed", nil)
-    end
-    if popup and popup.SetScript then
-        popup:SetScript("OnHide", nil)
-    end
-    if popup and popup.Hide then
-        popup:Hide()
+    local function hidePopup(frame)
+        if not frame then return end
+        if frame.edit and frame.edit.SetScript then
+            frame.edit:SetScript("OnEscapePressed", nil)
+            frame.edit:SetScript("OnTextChanged", nil)
+            frame.edit._chatCopyText = nil
+        end
+        if frame.close and frame.close.SetScript then
+            frame.close:SetScript("OnClick", nil)
+        end
+        if frame.Hide then
+            frame:Hide()
+        end
     end
 
+    hidePopup(popup)
     if globalPopup and globalPopup ~= popup then
-        if globalPopup.edit and globalPopup.edit.SetScript then
-            globalPopup.edit:SetScript("OnEscapePressed", nil)
-        end
-        if globalPopup.SetScript then
-            globalPopup:SetScript("OnHide", nil)
-        end
-        if globalPopup.Hide then
-            globalPopup:Hide()
-        end
+        hidePopup(globalPopup)
         popup = globalPopup
     end
 
