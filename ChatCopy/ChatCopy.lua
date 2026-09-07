@@ -50,6 +50,28 @@ local function ProtectEditBox(edit)
     end)
 end
 
+local function ConfigurePopupDrag(popup)
+    if not popup then return end
+    if popup.SetMovable then
+        popup:SetMovable(true)
+    end
+    if popup.RegisterForDrag then
+        popup:RegisterForDrag("LeftButton")
+    end
+    if popup.SetScript then
+        popup:SetScript("OnDragStart", function(self)
+            if self.StartMoving then
+                self:StartMoving()
+            end
+        end)
+        popup:SetScript("OnDragStop", function(self)
+            if self.StopMovingOrSizing then
+                self:StopMovingOrSizing()
+            end
+        end)
+    end
+end
+
 function ChatCopy:CreateButton()
     local globalButton = _G[BUTTON_NAME]
     if globalButton and globalButton ~= self.button then
@@ -132,6 +154,7 @@ function ChatCopy:CreatePopup()
     local popup = self.popup or globalPopup
     if popup then
         self.popup = popup
+        ConfigurePopupDrag(popup)
         if popup.close and popup.close.SetScript then
             popup.close:SetScript("OnClick", function()
                 popup:Hide()
@@ -146,6 +169,7 @@ function ChatCopy:CreatePopup()
     popup:SetSize(600, 320)
     popup:SetPoint("CENTER", UIParent, "CENTER", -100, 100)
     popup:EnableMouse(true)
+    ConfigurePopupDrag(popup)
 
     if popup.SetBackdrop then
         popup:SetBackdrop({
@@ -232,6 +256,10 @@ function ChatCopy:DestroyPopup()
         end
         if frame.close and frame.close.SetScript then
             frame.close:SetScript("OnClick", nil)
+        end
+        if frame.SetScript then
+            frame:SetScript("OnDragStart", nil)
+            frame:SetScript("OnDragStop", nil)
         end
         if frame.Hide then
             frame:Hide()
