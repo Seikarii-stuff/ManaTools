@@ -289,4 +289,23 @@ do
     assert(popup:GetScript("OnDragStop") ~= nil, "Drag-stop handler is restored after re-enable")
 end
 
+-- 17. Secret chat entries are ignored instead of being copied
+do
+    clearChatCopyGlobals()
+    CreateFrame = CreateFrameMock
+    issecretvalue = function(value) return value == "secret" end
+    local general = newFrame()
+    function general:GetNumMessages() return 3 end
+    function general:GetMessageInfo(index)
+        local messages = { "hello", "secret", "world" }
+        return messages[index]
+    end
+    _G["ChatFrame1"] = general
+    local namespace = { DB = { ChatCopy = { enabled = true } } }
+    loadFile("ChatCopy/ChatCopy.lua", "ManaTools", namespace)
+
+    local text = namespace.ChatCopy:BuildTextFromGeneral()
+    assert(text == "hello\nworld", "Secret chat messages should be skipped")
+end
+
 print("ChatCopy tests passed")

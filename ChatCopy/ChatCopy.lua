@@ -134,11 +134,12 @@ function ChatCopy:BuildTextFromGeneral()
     local parts = {}
     for i = start, max do
         local msg = nil
-        -- GetMessageInfo may return multiple values; first is the message
+        -- GetMessageInfo may return multiple values; first is the message.
+        -- WoW can mark secret/hidden values with a sentinel that should never be copied.
         if general.GetMessageInfo then
             msg = select(1, general:GetMessageInfo(i))
         end
-        if msg then
+        if msg ~= nil and (not issecretvalue or not issecretvalue(msg)) then
             parts[#parts + 1] = tostring(msg)
         end
     end
