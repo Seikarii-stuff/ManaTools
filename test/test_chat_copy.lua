@@ -246,4 +246,28 @@ do
     assert(firstButton:GetScript("OnClick") == nil, "Final OFF leaves button script inactive")
 end
 
+-- 16. Re-enabling after OFF restores popup scripts for the reused window
+do
+    clearChatCopyGlobals()
+    CreateFrame = CreateFrameMock
+    local general = newFrame()
+    function general:GetNumMessages() return 1 end
+    function general:GetMessageInfo() return "msg" end
+    _G["ChatFrame1"] = general
+    local namespace = { DB = { ChatCopy = { enabled = true } } }
+    loadFile("ChatCopy/ChatCopy.lua", "ManaTools", namespace)
+    local module = namespace.ChatCopy
+    module:OpenPopup()
+    local popup = module.popup
+
+    module:Disable()
+    module:Enable()
+    module:OpenPopup()
+
+    assert(module.popup == popup, "Popup is reused after ON/OFF")
+    assert(popup.close:GetScript("OnClick") ~= nil, "Close button is restored after re-enable")
+    assert(popup.edit:GetScript("OnTextChanged") ~= nil, "Read-only protection is restored after re-enable")
+    assert(popup.edit:GetScript("OnEscapePressed") ~= nil, "Escape handler is restored after re-enable")
+end
+
 print("ChatCopy tests passed")
