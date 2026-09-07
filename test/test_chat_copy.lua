@@ -66,7 +66,26 @@ do
     local namespace = {}
     loadFile("Bootstrap.lua", "ManaTools", namespace)
     assert(namespace.DB.ChatCopy ~= nil, "ChatCopy DB exists")
-    assert(namespace.DB.ChatCopy.enabled == true, "ChatCopy enabled default is true")
+    assert(namespace.DB.ChatCopy.enabled == false, "ChatCopy enabled default is false")
+end
+
+-- 1b. /mana copy toggles the feature
+ do
+    local namespace = {
+        DB = { ChatCopy = { enabled = false } },
+        ChatCopy = { Update = function() end },
+    }
+    local output = {}
+    local originalPrint = print
+    print = function(msg) table.insert(output, msg) end
+    loadFile("SlashCmd.lua", "ManaTools", namespace)
+    SlashCmdList.MANATOOLS("copy")
+    assert(namespace.DB.ChatCopy.enabled == true, "First /mana copy enables ChatCopy")
+    assert(output[#output] == "ManaTools: Chat Copy activado.", "First /mana copy prints enabled status")
+    SlashCmdList.MANATOOLS("copy")
+    assert(namespace.DB.ChatCopy.enabled == false, "Second /mana copy disables ChatCopy")
+    assert(output[#output] == "ManaTools: Chat Copy desactivado.", "Second /mana copy prints disabled status")
+    print = originalPrint
 end
 
 -- 2,3 OFF means no button or popup is active

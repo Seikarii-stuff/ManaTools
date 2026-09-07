@@ -24,6 +24,25 @@ local function HandleManaCommand(message)
         return
     end
 
+    if command == "copy" then
+        if not ManaTools.DB or not ManaTools.DB.ChatCopy then
+            print("ManaTools: No hay configuración de Chat Copy disponible.")
+            return
+        end
+
+        ManaTools.DB.ChatCopy.enabled = not ManaTools.DB.ChatCopy.enabled
+        if ManaTools.ChatCopy and ManaTools.ChatCopy.Update then
+            ManaTools.ChatCopy:Update()
+        end
+
+        if ManaTools.DB.ChatCopy.enabled then
+            print("ManaTools: Chat Copy activado.")
+        else
+            print("ManaTools: Chat Copy desactivado.")
+        end
+        return
+    end
+
     OpenManaToolsSettings()
 end
 

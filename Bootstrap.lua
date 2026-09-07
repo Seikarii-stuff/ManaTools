@@ -16,7 +16,7 @@ if ManaTools.DB.NoInfo.enabled == nil then
     ManaTools.DB.NoInfo.enabled = true
 end
 if ManaTools.DB.ChatCopy.enabled == nil then
-    ManaTools.DB.ChatCopy.enabled = true
+    ManaTools.DB.ChatCopy.enabled = false
 end
 if ManaTools.DB.NoInfo.inspectMode == nil then
     ManaTools.DB.NoInfo.inspectMode = 0
