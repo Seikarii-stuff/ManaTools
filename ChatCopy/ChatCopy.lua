@@ -35,6 +35,21 @@ local function ClearButtonScripts(btn)
     end
 end
 
+local function ProtectEditBox(edit)
+    if not edit then return end
+    edit:SetScript("OnTextChanged", function(self, userInput)
+        if userInput and self._chatCopyText ~= nil and self:GetText() ~= self._chatCopyText then
+            self:SetText(self._chatCopyText)
+            if self.SetCursorPosition then
+                self:SetCursorPosition(0)
+            end
+            if self.HighlightText then
+                self:HighlightText()
+            end
+        end
+    end)
+end
+
 function ChatCopy:CreateButton()
     local globalButton = _G[BUTTON_NAME]
     if globalButton and globalButton ~= self.button then
@@ -117,6 +132,12 @@ function ChatCopy:CreatePopup()
     local popup = self.popup or globalPopup
     if popup then
         self.popup = popup
+        if popup.close and popup.close.SetScript then
+            popup.close:SetScript("OnClick", function()
+                popup:Hide()
+            end)
+        end
+        ProtectEditBox(popup.edit)
         RegisterEscapeFrame(POPUP_NAME)
         return popup
     end
@@ -162,20 +183,7 @@ function ChatCopy:CreatePopup()
     edit:SetHeight(260)
     edit:EnableMouse(true)
     edit:SetPoint("TOPLEFT", scroll, "TOPLEFT", 0, 0)
-
-    -- Keep the EditBox selectable so the user can highlight and Ctrl+C the text,
-    -- but immediately restore the snapshot if any user input tries to modify it.
-    edit:SetScript("OnTextChanged", function(self, userInput)
-        if userInput and self._chatCopyText ~= nil and self:GetText() ~= self._chatCopyText then
-            self:SetText(self._chatCopyText)
-            if self.SetCursorPosition then
-                self:SetCursorPosition(0)
-            end
-            if self.HighlightText then
-                self:HighlightText()
-            end
-        end
-    end)
+    ProtectEditBox(edit)
 
     popup.edit = edit
     scroll:SetScrollChild(edit)
@@ -193,6 +201,7 @@ function ChatCopy:OpenPopup()
     if edit then
         edit._chatCopyText = text
         edit:SetText(text)
+        ProtectEditBox(edit)
         edit:SetScript("OnEscapePressed", function()
             popup:Hide()
         end)
