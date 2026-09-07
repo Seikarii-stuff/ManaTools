@@ -6,17 +6,39 @@ ManaTools.ChatCopy = ChatCopy
 
 -- Config
 local MAX_LINES = 200
+local BUTTON_NAME = "ManaToolsChatCopyButton"
+local POPUP_NAME = "ManaToolsChatCopyPopup"
+local EDITBOX_NAME = "ManaToolsChatCopyEditBox"
 
 local function GetGeneralChatFrame()
     return _G["ChatFrame1"] or DEFAULT_CHAT_FRAME or _G["DEFAULT_CHAT_FRAME"]
 end
 
+local function RegisterEscapeFrame(name)
+    if not UISpecialFrames then
+        UISpecialFrames = {}
+    end
+    for _, registeredName in ipairs(UISpecialFrames) do
+        if registeredName == name then return end
+    end
+    table.insert(UISpecialFrames, name)
+end
+
 function ChatCopy:CreateButton()
-    if self.button then return end
+    local btn = self.button or _G[BUTTON_NAME]
+    if btn then
+        self.button = btn
+        btn:SetScript("OnClick", function()
+            ChatCopy:OpenPopup()
+        end)
+        if btn.Show then btn:Show() end
+        return
+    end
+
     local general = GetGeneralChatFrame()
     if not general then return end
 
-    local btn = CreateFrame("Button", "ManaToolsChatCopyButton", general)
+    btn = CreateFrame("Button", BUTTON_NAME, general)
     btn:SetPoint("BOTTOMRIGHT", general, "BOTTOMRIGHT", -2, -3)
     btn:SetSize(40, 16)
     btn:EnableMouse(true)
@@ -25,19 +47,23 @@ function ChatCopy:CreateButton()
     fs:SetText("copy")
     btn.fs = fs
 
+    self.button = btn
     btn:SetScript("OnClick", function()
         ChatCopy:OpenPopup()
     end)
-
-    self.button = btn
 end
 
 function ChatCopy:RemoveButton()
-    if not self.button then return end
-    self.button:SetScript("OnClick", nil)
-    self.button:Hide()
-    _G["ManaToolsChatCopyButton"] = nil
-    self.button = nil
+    local btn = self.button or _G[BUTTON_NAME]
+    if not btn then
+        self.button = nil
+        return
+    end
+
+    -- Keep the frame for reuse, but leave it completely inactive while disabled.
+    btn:SetScript("OnClick", nil)
+    if btn.Hide then btn:Hide() end
+    self.button = btn
 end
 
 function ChatCopy:BuildTextFromGeneral()
@@ -62,57 +88,78 @@ function ChatCopy:BuildTextFromGeneral()
     return table.concat(parts, "\n")
 end
 
+function ChatCopy:CreatePopup()
+    local popup = self.popup or _G[POPUP_NAME]
+    if popup then
+        self.popup = popup
+        RegisterEscapeFrame(POPUP_NAME)
+        return popup
+    end
+
+    popup = CreateFrame("Frame", POPUP_NAME, UIParent)
+    popup:SetSize(600, 300)
+    popup:SetPoint("CENTER", UIParent, "CENTER", -100, 100)
+    popup:EnableMouse(true)
+
+    local edit = CreateFrame("EditBox", EDITBOX_NAME, popup)
+    edit:SetMultiLine(true)
+    edit:SetAutoFocus(false)
+    edit:SetFontObject("ChatFontNormal")
+    edit:SetWidth(560)
+    edit:SetHeight(260)
+    edit:SetPoint("TOPLEFT", popup, "TOPLEFT", 10, -10)
+    edit:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -10, 10)
+    edit:EnableMouse(true)
+
+    popup.edit = edit
+    self.popup = popup
+    RegisterEscapeFrame(POPUP_NAME)
+    return popup
+end
+
 function ChatCopy:OpenPopup()
     -- Build text on demand only when user clicks
     local text = self:BuildTextFromGeneral()
-    if not self.popup then
-        local popup = CreateFrame("Frame", "ManaToolsChatCopyPopup", UIParent)
-        popup:SetSize(600, 300)
-        popup:SetPoint("CENTER", UIParent, "CENTER", -100, 100)
-        popup:EnableMouse(true)
+    local popup = self:CreatePopup()
+    local edit = popup and popup.edit
 
-        local edit = CreateFrame("EditBox", "ManaToolsChatCopyEditBox", popup)
-        edit:SetMultiLine(true)
-        edit:SetAutoFocus(false)
-        edit:SetFontObject("ChatFontNormal")
-        edit:SetWidth(560)
-        edit:SetHeight(260)
-        edit:SetPoint("TOPLEFT", popup, "TOPLEFT", 10, -10)
-        edit:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -10, 10)
-        edit:EnableMouse(true)
-        edit:SetScript("OnEscapePressed", function(self) popup:Hide() end)
-
-        popup.edit = edit
-        self.popup = popup
-    end
-
-    if self.popup and self.popup.edit then
-        self.popup.edit:SetText(text)
-        -- Mock environments may not implement SetFocus/HighlightText; call if available
-        if self.popup.edit.SetFocus then
-            self.popup.edit:SetFocus()
+    if edit then
+        edit:SetText(text)
+        edit:SetScript("OnEscapePressed", function(self)
+            popup:Hide()
+        end)
+        -- Mock environments may not implement SetFocus/HighlightText; call if available.
+        if edit.SetFocus then
+            edit:SetFocus()
+        end
+        if edit.HighlightText then
+            edit:HighlightText()
         end
     end
 
-    if self.popup and self.popup.Show then
-        self.popup:Show()
+    if popup and popup.Show then
+        popup:Show()
     end
 end
 
 function ChatCopy:DestroyPopup()
-    if not self.popup then return end
-    if self.popup.edit and self.popup.edit.SetScript then
-        self.popup.edit:SetScript("OnEscapePressed", nil)
+    local popup = self.popup or _G[POPUP_NAME]
+    if not popup then
+        self.popup = nil
+        return
     end
-    if self.popup.SetScript then
-        self.popup:SetScript("OnHide", nil)
+
+    if popup.edit and popup.edit.SetScript then
+        popup.edit:SetScript("OnEscapePressed", nil)
     end
-    if self.popup.Hide then
-        self.popup:Hide()
+    if popup.SetScript then
+        popup:SetScript("OnHide", nil)
     end
-    _G["ManaToolsChatCopyPopup"] = nil
-    _G["ManaToolsChatCopyEditBox"] = nil
-    self.popup = nil
+    if popup.Hide then
+        popup:Hide()
+    end
+    -- Keep the frame for reuse; no scripts remain active while disabled.
+    self.popup = popup
 end
 
 function ChatCopy:Enable()
@@ -123,9 +170,8 @@ function ChatCopy:Enable()
 end
 
 function ChatCopy:Disable()
-    if not self._enabled then return end
+    -- Always run cleanup, even if the internal state is already disabled or stale.
     self._enabled = false
-    -- remove all UI and scripts created
     self:RemoveButton()
     self:DestroyPopup()
 end
