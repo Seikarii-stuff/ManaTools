@@ -24,8 +24,23 @@ local function RegisterEscapeFrame(name)
     table.insert(UISpecialFrames, name)
 end
 
+local function ClearButtonScripts(btn)
+    if btn and btn.SetScript then
+        btn:SetScript("OnClick", nil)
+    end
+    if btn and btn.Hide then
+        btn:Hide()
+    end
+end
+
 function ChatCopy:CreateButton()
-    local btn = self.button or _G[BUTTON_NAME]
+    local globalButton = _G[BUTTON_NAME]
+    if globalButton and globalButton ~= self.button then
+        ClearButtonScripts(self.button)
+        self.button = globalButton
+    end
+
+    local btn = self.button or globalButton
     if btn then
         self.button = btn
         btn:SetScript("OnClick", function()
@@ -54,15 +69,18 @@ function ChatCopy:CreateButton()
 end
 
 function ChatCopy:RemoveButton()
-    local btn = self.button or _G[BUTTON_NAME]
-    if not btn then
-        self.button = nil
-        return
+    local btn = self.button
+    local globalButton = _G[BUTTON_NAME]
+
+    -- Clean both references when they disagree, so stale state cannot leave an active frame behind.
+    if btn then
+        ClearButtonScripts(btn)
+    end
+    if globalButton and globalButton ~= btn then
+        ClearButtonScripts(globalButton)
+        btn = globalButton
     end
 
-    -- Keep the frame for reuse, but leave it completely inactive while disabled.
-    btn:SetScript("OnClick", nil)
-    if btn.Hide then btn:Hide() end
     self.button = btn
 end
 
@@ -89,7 +107,12 @@ function ChatCopy:BuildTextFromGeneral()
 end
 
 function ChatCopy:CreatePopup()
-    local popup = self.popup or _G[POPUP_NAME]
+    local globalPopup = _G[POPUP_NAME]
+    if globalPopup and globalPopup ~= self.popup then
+        self.popup = globalPopup
+    end
+
+    local popup = self.popup or globalPopup
     if popup then
         self.popup = popup
         RegisterEscapeFrame(POPUP_NAME)
@@ -143,22 +166,32 @@ function ChatCopy:OpenPopup()
 end
 
 function ChatCopy:DestroyPopup()
-    local popup = self.popup or _G[POPUP_NAME]
-    if not popup then
-        self.popup = nil
-        return
-    end
+    local popup = self.popup
+    local globalPopup = _G[POPUP_NAME]
 
-    if popup.edit and popup.edit.SetScript then
+    if popup and popup.edit and popup.edit.SetScript then
         popup.edit:SetScript("OnEscapePressed", nil)
     end
-    if popup.SetScript then
+    if popup and popup.SetScript then
         popup:SetScript("OnHide", nil)
     end
-    if popup.Hide then
+    if popup and popup.Hide then
         popup:Hide()
     end
-    -- Keep the frame for reuse; no scripts remain active while disabled.
+
+    if globalPopup and globalPopup ~= popup then
+        if globalPopup.edit and globalPopup.edit.SetScript then
+            globalPopup.edit:SetScript("OnEscapePressed", nil)
+        end
+        if globalPopup.SetScript then
+            globalPopup:SetScript("OnHide", nil)
+        end
+        if globalPopup.Hide then
+            globalPopup:Hide()
+        end
+        popup = globalPopup
+    end
+
     self.popup = popup
 end
 
