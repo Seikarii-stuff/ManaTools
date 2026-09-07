@@ -108,7 +108,7 @@ do
     assert(ok, "Module loading must not call GetMessageInfo")
 end
 
--- 8,9 Click collects messages and respects limit
+-- 8,9 Click collects messages and selects the text
 do
     clearChatCopyGlobals()
     CreateFrame = CreateFrameMock
@@ -124,13 +124,14 @@ do
     assert(popup ~= nil and popup.edit and popup.edit.text ~= nil, "Popup created and editbox filled on click")
     assert(popup.edit.text:match("msg1"), "Popup contains chat text from general")
     assert(popup.edit.highlightCount == 1, "HighlightText is called when available")
+    _G.ChatCopyTestModule = namespace.ChatCopy
 end
 
 -- 10. HighlightText is optional for compatibility with mocks/APIs
 do
     local popup = _G.ManaToolsChatCopyPopup
     popup.edit.HighlightText = nil
-    local ok = pcall(function() namespace.ChatCopy:OpenPopup() end)
+    local ok = pcall(function() _G.ChatCopyTestModule:OpenPopup() end)
     assert(ok, "OpenPopup must work without HighlightText")
 end
 
@@ -170,7 +171,31 @@ do
     assert(popup.edit:GetScript("OnEscapePressed") == nil, "Popup has no active script after repeated Disable")
 end
 
--- 13. Repeated OFF/ON cycles reuse one button and never duplicate UI
+-- 13. Disable also cleans up when internal references are stale
+do
+    clearChatCopyGlobals()
+    CreateFrame = CreateFrameMock
+    local general = newFrame()
+    _G["ChatFrame1"] = general
+    local namespace = { DB = { ChatCopy = { enabled = true } } }
+    loadFile("ChatCopy/ChatCopy.lua", "ManaTools", namespace)
+    local module = namespace.ChatCopy
+    local button = module.button
+    module:OpenPopup()
+    local popup = module.popup
+
+    module.button = nil
+    module.popup = nil
+    module._enabled = false
+    module:Disable()
+
+    assert(button.shown == false, "Disable hides a button found through the global")
+    assert(button:GetScript("OnClick") == nil, "Disable clears a stale button script")
+    assert(popup.shown == false, "Disable hides a popup found through the global")
+    assert(popup.edit:GetScript("OnEscapePressed") == nil, "Disable clears a stale popup script")
+end
+
+-- 14. Repeated OFF/ON cycles reuse one button and never duplicate UI
 do
     clearChatCopyGlobals()
     CreateFrame = CreateFrameMock
@@ -196,12 +221,6 @@ do
     assert(_G.ManaToolsChatCopyButton == firstButton, "Only one button instance exists")
     assert(firstButton.shown == false, "Final OFF leaves button hidden")
     assert(firstButton:GetScript("OnClick") == nil, "Final OFF leaves button script inactive")
-
-    local popup = module:CreatePopup()
-    module:DestroyPopup()
-    module:DestroyPopup()
-    assert(popup.shown == false, "Repeated popup cleanup leaves it hidden")
-    assert(popup.edit:GetScript("OnEscapePressed") == nil, "Repeated popup cleanup leaves scripts inactive")
 end
 
 print("ChatCopy tests passed")
