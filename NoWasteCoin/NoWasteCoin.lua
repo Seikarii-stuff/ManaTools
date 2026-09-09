@@ -51,6 +51,12 @@ local function UpdateRollButton()
         button:Enable()
         button:SetAlpha(1)
         button.tooltipText = nil
+    else
+        if IsBonusRollFrameActive() then
+            button.tooltipText = "Usa /coin para habilitar."
+        else
+            button.tooltipText = nil
+        end
     end
 end
 
@@ -134,9 +140,7 @@ function NoWasteCoin.Initialize()
     return HookBonusRollUI()
 end
 
-function NoWasteCoin.Update()
-    return UpdateRollButton()
-end
+-- NoWasteCoin.Update removed: use public helpers like EnableCurrentRollOverride/ClearCurrentRollOverride instead.
 
 function NoWasteCoin.EnableCurrentRollOverride()
     if not IsBonusRollFrameActive() then

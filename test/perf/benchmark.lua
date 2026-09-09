@@ -60,12 +60,7 @@ local results = {
     "",
 }
 
--- NoWasteCoin simplified: benchmark a lightweight Update() path.
-for _ = 1, warmup do NoWasteCoin.Update() end
-local elapsed = runTimed(function(count)
-    for _ = 1, count do NoWasteCoin.Update() end
-end, iterations)
-appendMetric(results, "NoWasteCoin Update", elapsed, iterations)
+-- NoWasteCoin: no microbenchmark included (API reduced to explicit helpers).
 
 
 -- ManaInvite benchmarks removed (deprecated)

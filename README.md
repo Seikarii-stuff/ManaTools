@@ -94,7 +94,6 @@ Relevant public methods:
 
 ```lua
 ManaTools.NoWasteCoin.Initialize()
-ManaTools.NoWasteCoin.Update()
 ManaTools.NoWasteCoin.EnableCurrentRollOverride()
 ManaTools.NoWasteCoin.ClearCurrentRollOverride()
 ```

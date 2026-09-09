@@ -2,9 +2,8 @@ ManaTools benchmark results
 ===========================
 Generated: 2026-09-09 08:23:49 UTC
 Iterations per hot path: 10000
-Warmup per hot path: 1000
 
-NoWasteCoin Update                       0.001000 s      10000000 calls/s         0.100 us/call
+Warmup per hot path: 1000
 
 CinematicSkip benchmarks
 ------------------------

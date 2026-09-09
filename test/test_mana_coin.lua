@@ -44,6 +44,10 @@ mock.defineBonusRollStart()
 mock.fireEvent("ADDON_LOADED", "Blizzard_BonusRoll")
 mock.startBonusRoll()
 
+-- Tooltip reminder appears when Bonus Roll open and override not active.
+-- After startBonusRoll the reminder should be present.
+assertEqual(frame.PromptFrame.RollButton.tooltipText, "Usa /coin para habilitar.", "tooltip reminds to use /coin before override")
+
 -- Basic override: /coin should report success when a Bonus Roll is active.
 SlashCmdList.MANACOIN()
 assertEqual(slashOutput[#slashOutput], "ManaTools: Bonus Roll desbloqueada para esta tirada.", "successful /coin message")
@@ -52,6 +56,9 @@ assertTrue(NoWasteCoin.EnableCurrentRollOverride(), "EnableCurrentRollOverride r
 -- Clicking should execute the original callback.
 frame.PromptFrame.RollButton:TriggerScript("OnClick")
 assertEqual(originalClickCount, 1, "click executes original callback")
+
+-- After consuming the override, the tooltip should return to the reminder when frame still active.
+assertEqual(frame.PromptFrame.RollButton.tooltipText, "Usa /coin para habilitar.", "tooltip reminder restored after override consumed")
 
 -- Clicking again still executes original (no blocking behavior remains).
 frame.PromptFrame.RollButton:TriggerScript("OnClick")
