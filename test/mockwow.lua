@@ -48,6 +48,8 @@ local function newFrame()
     function frame:GetChecked() return self.checked end
     function frame:Enable() self.enabled = true; self:TriggerScript("OnEnable") end
     function frame:Disable() self.enabled = false end
+    function frame:IsEnabled() return self.enabled == true end
+    function frame:GetAlpha() return self.alpha or 1 end
     function frame:SetAlpha(value) self.alpha = value end
     function frame:SetShown(value) self.shown = value end
     function frame:SetMovable(value) self.movable = value end

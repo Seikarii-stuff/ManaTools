@@ -1,24 +1,24 @@
 ManaTools benchmark results
 ===========================
-Generated: 2026-09-09 08:36:22 UTC
+Generated: 2026-09-09 10:20:01 UTC
 Iterations per hot path: 10000
 Warmup per hot path: 1000
 
 
 CinematicSkip benchmarks
 ------------------------
-CINEMATIC_START                          0.005000 s       2000000 calls/s         0.500 us/call
+CINEMATIC_START                          0.004000 s       2500000 calls/s         0.400 us/call
 PLAY_MOVIE                               0.016000 s        625000 calls/s         1.600 us/call
 TALKINGHEAD_REQUESTED                    0.016000 s        625000 calls/s         1.600 us/call
 
 ChatCopy benchmarks
 -------------------
-ChatCopy BUILD_TEXT_FROM_GENERAL         1.026000 s          9747 calls/s       102.600 us/call
-ChatCopy OPEN_POPUP                      1.062000 s          9416 calls/s       106.200 us/call
+ChatCopy BUILD_TEXT_FROM_GENERAL         1.010000 s          9901 calls/s       101.000 us/call
+ChatCopy OPEN_POPUP                      1.052000 s          9506 calls/s       105.200 us/call
 
 NoInfo benchmarks
 ----------------
-NoInfo OFF                               0.010000 s       1000000 calls/s         1.000 us/call
+NoInfo OFF                               0.009000 s       1111111 calls/s         0.900 us/call
 NoInfo normal inspection                 0.002000 s       5000000 calls/s         0.200 us/call
 NoInfo inspection + rating               0.002000 s       5000000 calls/s         0.200 us/call
 NoInfo disabled: original OnShow         0.001000 s      10000000 calls/s         0.100 us/call
