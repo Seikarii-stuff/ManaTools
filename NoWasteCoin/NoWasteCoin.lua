@@ -140,7 +140,7 @@ function NoWasteCoin.Initialize()
     return HookBonusRollUI()
 end
 
--- NoWasteCoin.Update removed: use public helpers like EnableCurrentRollOverride/ClearCurrentRollOverride instead.
+ 
 
 function NoWasteCoin.EnableCurrentRollOverride()
     if not IsBonusRollFrameActive() then
