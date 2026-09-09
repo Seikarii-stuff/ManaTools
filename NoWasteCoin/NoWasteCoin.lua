@@ -9,7 +9,7 @@ local bonusRollStartHooked = false
 local currentRollOverride = false
 local currentRollFrame
 
--- No content restrictions: the addon no longer gates Bonus Rolls by difficulty.
+-- Bonus Rolls are always blocked unless /coin explicitly enables the current roll.
 
 local function IsCurrentRollOverrideActive()
     return currentRollOverride and currentRollFrame == BonusRollFrame and BonusRollFrame ~= nil
@@ -52,11 +52,9 @@ local function UpdateRollButton()
         button:SetAlpha(1)
         button.tooltipText = nil
     else
-        if IsBonusRollFrameActive() then
-            button.tooltipText = "Usa /coin para habilitar."
-        else
-            button.tooltipText = nil
-        end
+        button:Disable()
+        button:SetAlpha(0.4)
+        button.tooltipText = "Usa /coin para habilitar."
     end
 end
 
@@ -71,15 +69,12 @@ local function HookRollButton(button)
     if currentOnClick ~= wrappedOnClick then
         local originalOnClick = currentOnClick
         wrappedOnClick = function(self, ...)
-            if IsCurrentRollOverrideActive() then
-                ClearCurrentRollOverride()
-                UpdateRollButton()
-                if originalOnClick then
-                    return originalOnClick(self, ...)
-                end
+            if not IsCurrentRollOverrideActive() then
                 return
             end
 
+            ClearCurrentRollOverride()
+            UpdateRollButton()
             if originalOnClick then
                 return originalOnClick(self, ...)
             end
@@ -116,6 +111,13 @@ local function HookBonusRollUI()
     if visualHookedButton ~= button then
         visualHookedButton = button
         button:HookScript("OnShow", UpdateRollButton)
+        button:HookScript("OnEnable", function(self)
+            if not IsCurrentRollOverrideActive() then
+                self:Disable()
+                self:SetAlpha(0.4)
+                self.tooltipText = "Usa /coin para habilitar."
+            end
+        end)
     end
 
     UpdateRollButton()
@@ -139,8 +141,6 @@ function NoWasteCoin.Initialize()
     InstallBonusRollStartHook()
     return HookBonusRollUI()
 end
-
- 
 
 function NoWasteCoin.EnableCurrentRollOverride()
     if not IsBonusRollFrameActive() then
