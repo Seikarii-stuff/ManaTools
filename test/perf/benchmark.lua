@@ -51,14 +51,6 @@ local function appendMetric(results, name, elapsed, count)
     results[#results + 1] = string.format("%-38s %10.6f s  %12.0f calls/s  %12.3f us/call", name, elapsed, rate, elapsed * 1000000 / count)
 end
 
-local cases = {
-    { name = "Mythic raid", type = "raid", difficulty = 16, challenge = false, heroic = false, mythicPlus = false },
-    { name = "Heroic raid", type = "raid", difficulty = 15, challenge = false, heroic = true, mythicPlus = false },
-    { name = "Mythic+", type = "party", difficulty = 8, challenge = true, heroic = false, mythicPlus = true },
-    { name = "Mythic 0", type = "party", difficulty = 23, challenge = false, heroic = false, mythicPlus = true },
-    { name = "Open world", type = nil, difficulty = 0, challenge = false, heroic = false, mythicPlus = false },
-}
-
 local results = {
     "ManaTools benchmark results",
     "===========================",
@@ -68,16 +60,12 @@ local results = {
     "",
 }
 
-for _, case in ipairs(cases) do
-    noWasteDB.allowHeroicRaid = case.heroic
-    noWasteDB.allowMythicPlus = case.mythicPlus
-    if case.type then mock.setContent(case.type, case.difficulty, case.challenge) else mock.setWorld() end
-    for _ = 1, warmup do NoWasteCoin.IsAllowedContent() end
-    local elapsed = runTimed(function(count)
-        for _ = 1, count do NoWasteCoin.IsAllowedContent() end
-    end, iterations)
-    appendMetric(results, "NoWasteCoin " .. case.name, elapsed, iterations)
-end
+-- NoWasteCoin simplified: benchmark a lightweight Update() path.
+for _ = 1, warmup do NoWasteCoin.Update() end
+local elapsed = runTimed(function(count)
+    for _ = 1, count do NoWasteCoin.Update() end
+end, iterations)
+appendMetric(results, "NoWasteCoin Update", elapsed, iterations)
 
 
 -- ManaInvite benchmarks removed (deprecated)

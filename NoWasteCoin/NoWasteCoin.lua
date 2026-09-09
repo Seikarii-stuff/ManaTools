@@ -1,13 +1,5 @@
 local ADDON_NAME, ManaTools = ...
 
-local db = ManaTools.DB.NoWasteCoin
-if db.allowHeroicRaid == nil then
-    db.allowHeroicRaid = false
-end
-if db.allowMythicPlus == nil then
-    db.allowMythicPlus = false
-end
-
 local NoWasteCoin = ManaTools.NoWasteCoin
 local hookedFrame
 local hookedButton
@@ -17,28 +9,7 @@ local bonusRollStartHooked = false
 local currentRollOverride = false
 local currentRollFrame
 
-local function IsAllowedContent()
-    local inInstance, instanceType = IsInInstance()
-    if not inInstance then
-        return false
-    end
-
-    local _, _, difficultyID = GetInstanceInfo()
-
-    if instanceType == "raid" and difficultyID == 16 then
-        return true
-    end
-
-    if instanceType == "raid" and difficultyID == 15 then
-        return db.allowHeroicRaid == true
-    end
-
-    if instanceType == "party" and C_ChallengeMode and C_ChallengeMode.IsChallengeModeActive then
-        return db.allowMythicPlus == true and C_ChallengeMode.IsChallengeModeActive()
-    end
-
-    return false
-end
+-- No content restrictions: the addon no longer gates Bonus Rolls by difficulty.
 
 local function IsCurrentRollOverrideActive()
     return currentRollOverride and currentRollFrame == BonusRollFrame and BonusRollFrame ~= nil
@@ -76,16 +47,10 @@ local function UpdateRollButton()
         return
     end
 
-    local allowed = IsCurrentRollOverrideActive() or IsAllowedContent()
-
-    if allowed then
+    if IsCurrentRollOverrideActive() then
         button:Enable()
         button:SetAlpha(1)
         button.tooltipText = nil
-    else
-        button:Disable()
-        button:SetAlpha(0.4)
-        button.tooltipText = "NoWasteCoin: Bonus Roll disabled here."
     end
 end
 
@@ -100,18 +65,12 @@ local function HookRollButton(button)
     if currentOnClick ~= wrappedOnClick then
         local originalOnClick = currentOnClick
         wrappedOnClick = function(self, ...)
-            -- This remains the actual spending barrier. The temporary override
-            -- only replaces the content decision for the currently open roll.
             if IsCurrentRollOverrideActive() then
                 ClearCurrentRollOverride()
                 UpdateRollButton()
                 if originalOnClick then
                     return originalOnClick(self, ...)
                 end
-                return
-            end
-
-            if not IsAllowedContent() then
                 return
             end
 
@@ -151,13 +110,6 @@ local function HookBonusRollUI()
     if visualHookedButton ~= button then
         visualHookedButton = button
         button:HookScript("OnShow", UpdateRollButton)
-        button:HookScript("OnEnable", function(self)
-            if not IsCurrentRollOverrideActive() and not IsAllowedContent() then
-                self:Disable()
-                self:SetAlpha(0.4)
-                self.tooltipText = "NoWasteCoin: Bonus Roll disabled here."
-            end
-        end)
     end
 
     UpdateRollButton()
@@ -180,10 +132,6 @@ end
 function NoWasteCoin.Initialize()
     InstallBonusRollStartHook()
     return HookBonusRollUI()
-end
-
-function NoWasteCoin.IsAllowedContent()
-    return IsAllowedContent()
 end
 
 function NoWasteCoin.Update()

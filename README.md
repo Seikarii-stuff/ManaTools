@@ -81,34 +81,22 @@ This order matters. `Bootstrap.lua` must remain before feature modules, and sett
 
 ### NoWasteCoin
 
-Purpose: prevent accidental Bonus Roll spending outside explicitly allowed content.
+Purpose: provide a small helper to explicitly enable spending the currently open Bonus Roll when requested.
 
-Default behavior:
+Behavior:
 
-- Mythic raids (`difficultyID == 16`) are allowed.
-- Heroic raids (`difficultyID == 15`) are blocked unless `allowHeroicRaid` is enabled.
-- Mythic+ is blocked unless `allowMythicPlus` is enabled **and** `C_ChallengeMode.IsChallengeModeActive()` is true.
-- Non-instance contexts are blocked.
+- The module no longer gates Bonus Roll spending by difficulty or instance type.
+- Use `/coin` to enable the current Bonus Roll (one-shot override) when a Bonus Roll frame is active.
 
-The implementation wraps the Bonus Roll button's `OnClick` handler and also updates its visual enabled/disabled state. The spending barrier is the `OnClick` wrapper; do not remove or weaken it merely because the button is visually disabled.
+The implementation hooks the Bonus Roll UI to offer `EnableCurrentRollOverride()` and `ClearCurrentRollOverride()` helpers; the module no longer maintains persistent settings for content gating.
 
 Relevant public methods:
 
 ```lua
 ManaTools.NoWasteCoin.Initialize()
-ManaTools.NoWasteCoin.IsAllowedContent()
 ManaTools.NoWasteCoin.Update()
 ManaTools.NoWasteCoin.EnableCurrentRollOverride()
 ManaTools.NoWasteCoin.ClearCurrentRollOverride()
-```
-
-The `/mana coin` command enables a **one-roll override** when a Bonus Roll frame is currently active. The override is consumed by the next click and then cleared.
-
-Persistent settings:
-
-```lua
-ManaToolsDB.NoWasteCoin.allowHeroicRaid = false
-ManaToolsDB.NoWasteCoin.allowMythicPlus = false
 ```
 
 ### CinematicSkip
@@ -162,10 +150,8 @@ The bootstrap normalizes legacy boolean values: `true → 1`, `false → 0`.
 
 The addon registers a settings category named **ManaTools**. `Options.lua` exposes toggles for:
 
-- NoWasteCoin → allow Bonus Roll in Heroic raids.
-- NoWasteCoin → allow Bonus Roll in Mythic+.
-- CinematicSkip → enabled/disabled.
-- NoInfo → enabled/disabled.
+ - CinematicSkip → enabled/disabled.
+ - NoInfo → enabled/disabled.
 
 Slash command:
 
@@ -176,7 +162,7 @@ Slash command:
 opens the ManaTools settings panel.
 
 ```text
-/mana coin
+/coin
 ```
 enables the current Bonus Roll override if a Bonus Roll is active.
 
