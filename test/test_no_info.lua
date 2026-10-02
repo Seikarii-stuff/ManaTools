@@ -127,11 +127,12 @@ local function runTest()
     function worldMapScroll:GetName() return "WorldMapFrameScrollContainer" end
     worldMapScroll:SetParent(WorldMapFrame)
     local worldMapPoi = newFrame()
+    function worldMapPoi:GetName() return "TaskPOIButton" end
     worldMapPoi:SetParent(worldMapScroll)
     tooltip.GetOwner = function() return worldMapPoi end
     GameTooltip.hidden = false
     wrapper(GameTooltip)
-    assert(GameTooltip.hidden == false, "nested WorldMap owner chain stays exempt")
+    assert(GameTooltip.hidden == false, "nested WorldMap task POI remains exempt")
 
     PlayerSpellsFrame = newFrame()
     function PlayerSpellsFrame:GetName() return "PlayerSpellsFrame" end
@@ -225,6 +226,18 @@ local function runTest()
     setUnit("player_unit")
     GameTooltip:TriggerScript("OnTooltipSetUnit")
     assert(GameTooltip.tooltipLines == 0, "nil summary adds no lines")
+
+    local mapOwner = newFrame()
+    function mapOwner:GetName() return "TaskPOIButton" end
+    mapOwner:SetParent(WorldMapFrame)
+    tooltip.GetOwner = function() return mapOwner end
+    GameTooltip.tooltipLines = 0
+    GameTooltip.lines = {}
+    GameTooltip.tooltipText = nil
+    GameTooltip.noInfoStatsAdded = nil
+    GameTooltip:TriggerScript("OnTooltipSetUnit")
+    assert(GameTooltip.tooltipLines == 0, "map task POI stays fully exempt in rating mode")
+    tooltip.GetOwner = function() return nil end
 
     -- New: summary with runs should add Highest Key line
     C_PlayerInfo.GetPlayerMythicPlusRatingSummary = function(unit)

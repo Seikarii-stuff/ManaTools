@@ -30,8 +30,11 @@ local function IsWorldMapOwner(owner)
         end
 
         local currentName = current.GetName and current:GetName()
-        if currentName == "WorldMapFrame" or currentName == "WorldMapFrameScrollContainer" then
-            return true
+        if currentName then
+            local lowered = string.lower(currentName)
+            if string.find(lowered, "worldmap", 1, true) or string.find(lowered, "taskpoi", 1, true) then
+                return true
+            end
         end
 
         current = current.GetParent and current:GetParent()
@@ -237,6 +240,13 @@ local function InstallMythicPlusTooltipHook()
 
         if not self then
             return
+        end
+
+        if self == GameTooltip then
+            local owner = self:GetOwner()
+            if IsWorldMapOwner(owner) then
+                return
+            end
         end
 
         local unit = GetSafeTooltipUnit(self)
