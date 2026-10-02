@@ -6,6 +6,12 @@ local wrapperInstalled = false
 local inspectButton
 local unitHookInstalled = false
 
+local WORLD_MAP_OWNER_NAMES = {
+    WorldMapFrame = true,
+    WorldMapFrameScrollContainer = true,
+    TaskPOIButton = true,
+}
+
 local function NormalizeInspectMode(value)
     if value == true then
         return 1
@@ -30,11 +36,8 @@ local function IsWorldMapOwner(owner)
         end
 
         local currentName = current.GetName and current:GetName()
-        if currentName then
-            local lowered = string.lower(currentName)
-            if string.find(lowered, "worldmap", 1, true) or string.find(lowered, "taskpoi", 1, true) then
-                return true
-            end
+        if currentName and WORLD_MAP_OWNER_NAMES[currentName] then
+            return true
         end
 
         current = current.GetParent and current:GetParent()

@@ -134,6 +134,22 @@ local function runTest()
     wrapper(GameTooltip)
     assert(GameTooltip.hidden == false, "nested WorldMap task POI remains exempt")
 
+    local someTaskPoiButton = newFrame()
+    function someTaskPoiButton:GetName() return "SomeTaskPOIButton" end
+    someTaskPoiButton:SetParent(newFrame())
+    tooltip.GetOwner = function() return someTaskPoiButton end
+    GameTooltip.hidden = false
+    wrapper(GameTooltip)
+    assert(GameTooltip.hidden == true, "similar TaskPOI names are not treated as World Map")
+
+    local someWorldMapWidget = newFrame()
+    function someWorldMapWidget:GetName() return "SomeWorldMapWidget" end
+    someWorldMapWidget:SetParent(newFrame())
+    tooltip.GetOwner = function() return someWorldMapWidget end
+    GameTooltip.hidden = false
+    wrapper(GameTooltip)
+    assert(GameTooltip.hidden == true, "similar WorldMap names are not treated as World Map")
+
     PlayerSpellsFrame = newFrame()
     function PlayerSpellsFrame:GetName() return "PlayerSpellsFrame" end
 
@@ -237,6 +253,30 @@ local function runTest()
     GameTooltip.noInfoStatsAdded = nil
     GameTooltip:TriggerScript("OnTooltipSetUnit")
     assert(GameTooltip.tooltipLines == 0, "map task POI stays fully exempt in rating mode")
+    tooltip.GetOwner = function() return nil end
+
+    local worldMapOwner = newFrame()
+    function worldMapOwner:GetName() return "TaskPOIButton" end
+    local worldMapScrollContainer = newFrame()
+    function worldMapScrollContainer:GetName() return "WorldMapFrameScrollContainer" end
+    worldMapScrollContainer:SetParent(WorldMapFrame)
+    worldMapOwner:SetParent(worldMapScrollContainer)
+    local originalGetTooltipUnit = _G.GetTooltipUnit
+    local originalUnitIsPlayer = _G.UnitIsPlayer
+    local originalRatingSummary = C_PlayerInfo.GetPlayerMythicPlusRatingSummary
+    _G.GetTooltipUnit = function() error("GetTooltipUnit must not be called for WorldMap tooltip") end
+    _G.UnitIsPlayer = function() error("UnitIsPlayer must not be called for WorldMap tooltip") end
+    C_PlayerInfo.GetPlayerMythicPlusRatingSummary = function() error("Mythic+ API must not be called for WorldMap tooltip") end
+    GameTooltip.tooltipLines = 0
+    GameTooltip.lines = {}
+    GameTooltip.tooltipText = nil
+    GameTooltip.noInfoStatsAdded = nil
+    tooltip.GetOwner = function() return worldMapOwner end
+    GameTooltip:TriggerScript("OnTooltipSetUnit")
+    assert(GameTooltip.tooltipLines == 0, "WorldMap tooltip short-circuits before Mythic+ API access")
+    _G.GetTooltipUnit = originalGetTooltipUnit
+    _G.UnitIsPlayer = originalUnitIsPlayer
+    C_PlayerInfo.GetPlayerMythicPlusRatingSummary = originalRatingSummary
     tooltip.GetOwner = function() return nil end
 
     -- New: summary with runs should add Highest Key line
