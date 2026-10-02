@@ -30,6 +30,8 @@ local function newFrame()
     function frame:EnableMouse(value) self.mouseEnabled = value end
     function frame:SetShown(value) self.shown = value end
     function frame:SetAlpha(value) self.alpha = value end
+    function frame:SetParent(parent) self.parent = parent end
+    function frame:GetParent() return self.parent end
     function frame:GetWidth() return 100 end
     function frame:CreateTexture()
         local texture = newFrame()
@@ -119,6 +121,28 @@ local function runTest()
     GameTooltip.hidden = false
     wrapper(GameTooltip)
     assert(GameTooltip.hidden == false, "WorldMap owner stays exempt")
+
+    PlayerSpellsFrame = newFrame()
+    function PlayerSpellsFrame:GetName() return "PlayerSpellsFrame" end
+
+    local genericTalentParent = newFrame()
+    local genericTalentButton = newFrame()
+    function genericTalentButton:GetName() return "TalentButtonNameThatShouldNotMatter" end
+    genericTalentButton:SetParent(genericTalentParent)
+    genericTalentParent:SetParent(PlayerSpellsFrame)
+
+    tooltip.GetOwner = function() return genericTalentButton end
+    GameTooltip.hidden = false
+    wrapper(GameTooltip)
+    assert(GameTooltip.hidden == false, "PlayerSpellsFrame ancestry keeps talent tooltips visible")
+
+    local unrelatedOwner = newFrame()
+    function unrelatedOwner:GetName() return "SomeOtherButton" end
+    unrelatedOwner:SetParent(newFrame())
+    tooltip.GetOwner = function() return unrelatedOwner end
+    GameTooltip.hidden = false
+    wrapper(GameTooltip)
+    assert(GameTooltip.hidden == true, "non-talent owner still hides")
     tooltip.GetOwner = function() return nil end
 
     -- state transitions

@@ -44,6 +44,23 @@ local function IsWorldMapOwner(owner)
     return false
 end
 
+local function IsTalentOwner(owner)
+    while owner do
+        if owner == PlayerSpellsFrame then
+            return true
+        end
+
+        local ownerName = owner.GetName and owner:GetName()
+        if ownerName == "PlayerSpellsFrame" then
+            return true
+        end
+
+        owner = owner.GetParent and owner:GetParent()
+    end
+
+    return false
+end
+
 local function HideGameTooltip(self)
     if db.inspectMode ~= 0 then
         return
@@ -58,7 +75,7 @@ local function HideGameTooltip(self)
     if self == GameTooltip then
         local owner = self:GetOwner()
 
-        if owner == MainMenuMicroButton or IsWorldMapOwner(owner) then
+        if owner == MainMenuMicroButton or IsWorldMapOwner(owner) or IsTalentOwner(owner) then
             return
         end
     end
