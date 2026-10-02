@@ -23,22 +23,18 @@ local function NormalizeInspectMode(value)
 end
 
 local function IsWorldMapOwner(owner)
-    if not owner then
-        return false
-    end
+    local current = owner
+    while current do
+        if current == WorldMapFrame then
+            return true
+        end
 
-    if owner == WorldMapFrame then
-        return true
-    end
+        local currentName = current.GetName and current:GetName()
+        if currentName == "WorldMapFrame" or currentName == "WorldMapFrameScrollContainer" then
+            return true
+        end
 
-    local ownerName = owner.GetName and owner:GetName()
-    if ownerName == "WorldMapFrame" or ownerName == "WorldMapFrameScrollContainer" then
-        return true
-    end
-
-    local parent = owner.GetParent and owner:GetParent()
-    if parent and parent == WorldMapFrame then
-        return true
+        current = current.GetParent and current:GetParent()
     end
 
     return false

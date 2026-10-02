@@ -122,6 +122,17 @@ local function runTest()
     wrapper(GameTooltip)
     assert(GameTooltip.hidden == false, "WorldMap owner stays exempt")
 
+    local worldMapParent = newFrame()
+    local worldMapScroll = newFrame()
+    function worldMapScroll:GetName() return "WorldMapFrameScrollContainer" end
+    worldMapScroll:SetParent(WorldMapFrame)
+    local worldMapPoi = newFrame()
+    worldMapPoi:SetParent(worldMapScroll)
+    tooltip.GetOwner = function() return worldMapPoi end
+    GameTooltip.hidden = false
+    wrapper(GameTooltip)
+    assert(GameTooltip.hidden == false, "nested WorldMap owner chain stays exempt")
+
     PlayerSpellsFrame = newFrame()
     function PlayerSpellsFrame:GetName() return "PlayerSpellsFrame" end
 
