@@ -66,6 +66,7 @@ local function runTest()
     GameTooltip = tooltip
     Minimap = newFrame()
     MainMenuMicroButton = newFrame()
+    WorldMapFrame = newFrame()
     Enum = { TooltipDataType = { Item = 0 } }
 
     local db = { enabled = true, inspectMode = 0 }
@@ -111,6 +112,14 @@ local function runTest()
     GameTooltip.hidden = false
     wrapper(GameTooltip)
     assert(GameTooltip.hidden == false, "item tooltip data stays exempt")
+
+    tooltip.GetTooltipData = function() return { type = 999 } end
+    db.inspectMode = 0
+    tooltip.GetOwner = function() return WorldMapFrame end
+    GameTooltip.hidden = false
+    wrapper(GameTooltip)
+    assert(GameTooltip.hidden == false, "WorldMap owner stays exempt")
+    tooltip.GetOwner = function() return nil end
 
     -- state transitions
     _G.IsShiftKeyDown = function() return true end

@@ -22,6 +22,28 @@ local function NormalizeInspectMode(value)
     return 0
 end
 
+local function IsWorldMapOwner(owner)
+    if not owner then
+        return false
+    end
+
+    if owner == WorldMapFrame then
+        return true
+    end
+
+    local ownerName = owner.GetName and owner:GetName()
+    if ownerName == "WorldMapFrame" or ownerName == "WorldMapFrameScrollContainer" then
+        return true
+    end
+
+    local parent = owner.GetParent and owner:GetParent()
+    if parent and parent == WorldMapFrame then
+        return true
+    end
+
+    return false
+end
+
 local function HideGameTooltip(self)
     if db.inspectMode ~= 0 then
         return
@@ -36,7 +58,7 @@ local function HideGameTooltip(self)
     if self == GameTooltip then
         local owner = self:GetOwner()
 
-        if owner == MainMenuMicroButton then
+        if owner == MainMenuMicroButton or IsWorldMapOwner(owner) then
             return
         end
     end
