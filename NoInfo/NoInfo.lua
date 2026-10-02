@@ -50,11 +50,6 @@ local function IsTalentOwner(owner)
             return true
         end
 
-        local ownerName = owner.GetName and owner:GetName()
-        if ownerName == "PlayerSpellsFrame" then
-            return true
-        end
-
         owner = owner.GetParent and owner:GetParent()
     end
 
