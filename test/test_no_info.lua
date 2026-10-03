@@ -7,6 +7,9 @@ local file = assert(io.open("NoInfo/NoInfo.lua", "r"))
 local script = file:read("*a")
 file:close()
 
+assert(script:match('SetScript%("OnShow", NoInfoOnShow)') == nil, "NoInfo must not replace the Blizzard OnShow script")
+assert(script:match('originalOnShow') == nil, "NoInfo must not call or store the original OnShow from ManaTools")
+
 local function newFrame()
     local frame = { scripts = {}, shown = true, alpha = 1, size = {} }
     function frame:GetScript(event) return self.scripts[event] end
@@ -75,6 +78,10 @@ local function runTest()
     local originalOnShow = function() originalShowCount = originalShowCount + 1 end
     tooltip:SetScript("OnShow", originalOnShow)
 
+    local function triggerOnShow(frame)
+        frame:TriggerScript("OnShow")
+    end
+
     C_Timer = { After = function(delay, callback) table.insert(deferredCallbacks, callback) end }
     GameTooltip = tooltip
     Minimap = newFrame()
@@ -96,11 +103,11 @@ local function runTest()
     assert(namespace.NoInfo.Update, "NoInfo.Update exists")
     assert(db.inspectMode == 0, "inspect mode starts in OFF state")
 
-    local wrapper = GameTooltip:GetScript("OnShow")
-    assert(wrapper ~= nil, "enabled NoInfo installs its wrapper")
+    assert(GameTooltip:GetScript("OnShow") == originalOnShow, "original Blizzard OnShow remains installed")
+    assert((GameTooltip.hooks and GameTooltip.hooks["OnShow"] and #GameTooltip.hooks["OnShow"]) >= 1, "NoInfo installs an OnShow hook without replacing Blizzard")
 
     GameTooltip.hidden = false
-    wrapper(GameTooltip)
+    triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
     assert(originalShowCount == 1, "original OnShow still runs")
     assert(GameTooltip.hidden == true, "generic tooltip is hidden when OFF")
@@ -118,14 +125,14 @@ local function runTest()
     assert(button.alpha == 1, "button is illuminated in NORMAL state")
 
     GameTooltip.hidden = false
-    wrapper(GameTooltip)
+    triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
     assert(originalShowCount == 2, "original OnShow runs in NORMAL state")
     assert(GameTooltip.hidden == false, "NORMAL inspect mode lets generic tooltips show")
 
     tooltip.GetTooltipData = function() return { type = Enum.TooltipDataType.Item } end
     GameTooltip.hidden = false
-    wrapper(GameTooltip)
+    triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "item tooltip data stays exempt")
 
@@ -133,14 +140,14 @@ local function runTest()
     tooltip.GetTooltipData = function() return { type = Enum.TooltipDataType.Quest } end
     tooltip.GetOwner = function() return nil end
     GameTooltip.hidden = false
-    wrapper(GameTooltip)
+    triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "quest tooltip data stays exempt")
 
     tooltip.GetTooltipData = function() return nil end
     tooltip.GetOwner = function() return nil end
     GameTooltip.hidden = false
-    wrapper(GameTooltip)
+    triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "ownerless quest tooltip stays exempt")
 
@@ -148,7 +155,7 @@ local function runTest()
     db.inspectMode = 0
     tooltip.GetOwner = function() return WorldMapFrame end
     GameTooltip.hidden = false
-    wrapper(GameTooltip)
+    triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "WorldMap owner stays exempt")
 
@@ -161,7 +168,7 @@ local function runTest()
     worldMapPoi:SetParent(worldMapScroll)
     tooltip.GetOwner = function() return worldMapPoi end
     GameTooltip.hidden = false
-    wrapper(GameTooltip)
+    triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "nested WorldMap task POI remains exempt")
 
@@ -169,7 +176,7 @@ local function runTest()
     function anonymousOwner:GetParent() return nil end
     tooltip.GetOwner = function() return anonymousOwner end
     GameTooltip.hidden = false
-    wrapper(GameTooltip)
+    triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "anonymous owner without a valid map ancestry stays exempt to avoid taint")
 
@@ -178,7 +185,7 @@ local function runTest()
     someTaskPoiButton:SetParent(newFrame())
     tooltip.GetOwner = function() return someTaskPoiButton end
     GameTooltip.hidden = false
-    wrapper(GameTooltip)
+    triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
     assert(GameTooltip.hidden == true, "similar TaskPOI names are not treated as World Map")
 
@@ -187,7 +194,7 @@ local function runTest()
     someWorldMapWidget:SetParent(newFrame())
     tooltip.GetOwner = function() return someWorldMapWidget end
     GameTooltip.hidden = false
-    wrapper(GameTooltip)
+    triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
     assert(GameTooltip.hidden == true, "similar WorldMap names are not treated as World Map")
 
@@ -202,7 +209,7 @@ local function runTest()
 
     tooltip.GetOwner = function() return genericTalentButton end
     GameTooltip.hidden = false
-    wrapper(GameTooltip)
+    triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "PlayerSpellsFrame ancestry keeps talent tooltips visible")
 
@@ -211,7 +218,7 @@ local function runTest()
     unrelatedOwner:SetParent(newFrame())
     tooltip.GetOwner = function() return unrelatedOwner end
     GameTooltip.hidden = false
-    wrapper(GameTooltip)
+    triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
     assert(GameTooltip.hidden == true, "non-talent owner still hides")
     tooltip.GetOwner = function() return nil end
@@ -227,14 +234,14 @@ local function runTest()
 
     db.enabled = false
     namespace.NoInfo.Update()
-    assert(GameTooltip:GetScript("OnShow") == originalOnShow, "disable restores the original OnShow")
+    assert(GameTooltip:GetScript("OnShow") == originalOnShow, "disable leaves Blizzard OnShow intact")
+    assert((GameTooltip.hooks and GameTooltip.hooks["OnShow"] and #GameTooltip.hooks["OnShow"]) >= 1, "disable does not replace the original hook chain")
     assert(db.inspectMode == 0, "disable clears inspect mode")
     assert(button.shown == false, "button is hidden while disabled")
 
     db.enabled = true
     namespace.NoInfo.Update()
-    local wrapper2 = GameTooltip:GetScript("OnShow")
-    assert(wrapper2 == wrapper, "reactivation reuses the shared wrapper")
+    assert(GameTooltip:GetScript("OnShow") == originalOnShow, "reactivation keeps Blizzard OnShow intact")
     assert(button.shown == true, "reactivation shows the button again")
 
     local calls = 0
@@ -266,7 +273,7 @@ local function runTest()
     function activeTooltip:GetOwner() return newFrame() end
     local priorTooltip = GameTooltip
     GameTooltip = staleEcho
-    wrapper(staleEcho)
+    triggerOnShow(staleEcho)
     GameTooltip = activeTooltip
     flushDeferredCallbacks()
     assert(staleEcho.hidden == false, "stale deferred hide does not hide a newer tooltip generation")

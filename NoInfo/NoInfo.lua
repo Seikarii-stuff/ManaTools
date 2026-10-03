@@ -1,8 +1,7 @@
 local ADDON_NAME, ManaTools = ...
 
 local db = ManaTools.DB.NoInfo
-local originalOnShow
-local wrapperInstalled = false
+local hookInstalled = false
 local inspectButton
 local unitHookInstalled = false
 local hideGeneration = 0
@@ -88,6 +87,10 @@ local function ShouldHideGameTooltip(self)
         return false
     end
 
+    if not db.enabled then
+        return false
+    end
+
     if db.inspectMode ~= 0 then
         return false
     end
@@ -159,11 +162,7 @@ local function HideGameTooltip(self)
     end)
 end
 
-local function NoInfoOnShow(self, ...)
-    if originalOnShow then
-        originalOnShow(self, ...)
-    end
-
+local function NoInfoOnShow(self)
     HideGameTooltip(self)
 end
 
@@ -394,32 +393,33 @@ local function InstallMythicPlusTooltipHook()
 end
 
 local function Enable()
-    if wrapperInstalled then
+    if not GameTooltip or not GameTooltip.HookScript then
         return
     end
 
-    db.inspectMode = NormalizeInspectMode(db.inspectMode)
-    originalOnShow = GameTooltip:GetScript("OnShow")
-    GameTooltip:SetScript("OnShow", NoInfoOnShow)
-
-    InstallMythicPlusTooltipHook()
-
-    wrapperInstalled = true
-    UpdateInspectButton()
-end
-
-local function Disable()
-    if not wrapperInstalled then
+    if hookInstalled then
         UpdateInspectButton()
         return
     end
 
-    GameTooltip:SetScript("OnShow", originalOnShow)
-    originalOnShow = nil
-    wrapperInstalled = false
+    db.inspectMode = NormalizeInspectMode(db.inspectMode)
+    GameTooltip:HookScript("OnShow", NoInfoOnShow)
+    hookInstalled = true
+
+    InstallMythicPlusTooltipHook()
+    UpdateInspectButton()
+end
+
+local function Disable()
+    if not hookInstalled then
+        UpdateInspectButton()
+        return
+    end
+
     db.inspectMode = 0
-    GameTooltip.noInfoStatsAdded = nil
-    GameTooltip:Hide()
+    if GameTooltip then
+        GameTooltip.noInfoStatsAdded = nil
+    end
     UpdateInspectButton()
 end
 
