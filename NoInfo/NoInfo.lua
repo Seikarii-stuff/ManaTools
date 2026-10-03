@@ -88,6 +88,10 @@ local function HideGameTooltip(self)
             return
         end
 
+        if owner == nil and (not tooltipData or tooltipData.type == nil) then
+            return
+        end
+
         if type(owner) == "table" then
             local ownerName = owner.GetName and owner:GetName()
             local ownerParent = owner.GetParent and owner:GetParent()

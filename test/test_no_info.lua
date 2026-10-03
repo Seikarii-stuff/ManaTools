@@ -122,6 +122,12 @@ local function runTest()
     wrapper(GameTooltip)
     assert(GameTooltip.hidden == false, "quest tooltip data stays exempt")
 
+    tooltip.GetTooltipData = function() return nil end
+    tooltip.GetOwner = function() return nil end
+    GameTooltip.hidden = false
+    wrapper(GameTooltip)
+    assert(GameTooltip.hidden == false, "ownerless quest tooltip stays exempt")
+
     tooltip.GetTooltipData = function() return { type = 999 } end
     db.inspectMode = 0
     tooltip.GetOwner = function() return WorldMapFrame end
