@@ -134,6 +134,13 @@ local function runTest()
     wrapper(GameTooltip)
     assert(GameTooltip.hidden == false, "nested WorldMap task POI remains exempt")
 
+    local anonymousOwner = { };
+    function anonymousOwner:GetParent() return nil end
+    tooltip.GetOwner = function() return anonymousOwner end
+    GameTooltip.hidden = false
+    wrapper(GameTooltip)
+    assert(GameTooltip.hidden == false, "anonymous owner without a valid map ancestry stays exempt to avoid taint")
+
     local someTaskPoiButton = newFrame()
     function someTaskPoiButton:GetName() return "SomeTaskPOIButton" end
     someTaskPoiButton:SetParent(newFrame())

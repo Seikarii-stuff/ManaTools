@@ -30,7 +30,9 @@ end
 
 local function IsWorldMapOwner(owner)
     local current = owner
-    while current do
+    local depth = 0
+
+    while current and depth < 6 do
         if current == WorldMapFrame then
             return true
         end
@@ -41,6 +43,7 @@ local function IsWorldMapOwner(owner)
         end
 
         current = current.GetParent and current:GetParent()
+        depth = depth + 1
     end
 
     return false
@@ -74,6 +77,14 @@ local function HideGameTooltip(self)
 
         if owner == MainMenuMicroButton or IsWorldMapOwner(owner) or IsTalentOwner(owner) then
             return
+        end
+
+        if type(owner) == "table" then
+            local ownerName = owner.GetName and owner:GetName()
+            local ownerParent = owner.GetParent and owner:GetParent()
+            if not ownerName and not ownerParent then
+                return
+            end
         end
     end
 
