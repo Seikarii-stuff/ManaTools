@@ -255,13 +255,17 @@ local function runTest()
 
     C_PlayerInfo.GetPlayerMythicPlusRatingSummary = function(unit) return { currentSeasonScore = nil } end
     setUnit("player_unit")
+    GameTooltip.noInfoStatsAdded = nil
     GameTooltip:TriggerScript("OnTooltipSetUnit")
-    assert(GameTooltip.tooltipLines == 0, "player without currentSeasonScore adds no lines")
+    assert(GameTooltip.tooltipLines == 1, "player without currentSeasonScore still adds Mythic+ Rating: nil")
+    assert(GameTooltip.tooltipText == "Mythic+ Rating: nil")
 
     C_PlayerInfo.GetPlayerMythicPlusRatingSummary = function(unit) return nil end
     setUnit("player_unit")
+    GameTooltip.noInfoStatsAdded = nil
     GameTooltip:TriggerScript("OnTooltipSetUnit")
-    assert(GameTooltip.tooltipLines == 0, "nil summary adds no lines")
+    assert(GameTooltip.tooltipLines == 1, "nil summary still adds Mythic+ Rating: nil")
+    assert(GameTooltip.tooltipText == "Mythic+ Rating: nil")
 
     local mapOwner = newFrame()
     function mapOwner:GetName() return "TaskPOIButton" end

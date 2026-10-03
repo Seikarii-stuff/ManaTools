@@ -50,12 +50,16 @@ local function IsWorldMapOwner(owner)
 end
 
 local function IsTalentOwner(owner)
-    while owner do
-        if owner == PlayerSpellsFrame then
+    local current = owner
+    local depth = 0
+
+    while current and depth < 6 do
+        if current == PlayerSpellsFrame then
             return true
         end
 
-        owner = owner.GetParent and owner:GetParent()
+        current = current.GetParent and current:GetParent()
+        depth = depth + 1
     end
 
     return false
