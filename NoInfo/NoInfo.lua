@@ -4,7 +4,6 @@ local db = ManaTools.DB.NoInfo
 local hookInstalled = false
 local inspectButton
 local unitHookInstalled = false
-local hideGeneration = 0
 
 local WORLD_MAP_OWNER_NAMES = {
     WorldMapFrame = true,
@@ -130,36 +129,7 @@ local function HideGameTooltip(self)
         return
     end
 
-    hideGeneration = hideGeneration + 1
-    local generation = hideGeneration
-
-    if not C_Timer or not C_Timer.After then
-        return
-    end
-
-    C_Timer.After(0, function()
-        if hideGeneration ~= generation then
-            return
-        end
-
-        if not self or self ~= GameTooltip then
-            return
-        end
-
-        if not self:IsShown() then
-            return
-        end
-
-        if db.inspectMode ~= 0 then
-            return
-        end
-
-        if not ShouldHideGameTooltip(self) then
-            return
-        end
-
-        self:Hide()
-    end)
+    self:Hide()
 end
 
 local function NoInfoOnShow(self)

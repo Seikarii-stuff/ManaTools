@@ -9,6 +9,7 @@ file:close()
 
 assert(script:match('SetScript%("OnShow", NoInfoOnShow)') == nil, "NoInfo must not replace the Blizzard OnShow script")
 assert(script:match('originalOnShow') == nil, "NoInfo must not call or store the original OnShow from ManaTools")
+assert(script:match('C_Timer%.After%(%s*0') == nil, "NoInfo must not defer the hide to the next tick")
 
 local function newFrame()
     local frame = { scripts = {}, shown = true, alpha = 1, size = {} }
@@ -108,9 +109,10 @@ local function runTest()
 
     GameTooltip.hidden = false
     triggerOnShow(GameTooltip)
-    flushDeferredCallbacks()
     assert(originalShowCount == 1, "original OnShow still runs")
-    assert(GameTooltip.hidden == true, "generic tooltip is hidden when OFF")
+    assert(GameTooltip.hidden == true, "generic tooltip is hidden immediately, without a deferred tick")
+    flushDeferredCallbacks()
+    assert(GameTooltip.hidden == true, "deferred callbacks cannot re-show or revive the hidden tooltip")
 
     local button = _G.ManaToolsNoInfoInspectButton
     assert(button ~= nil, "inspect button is created")
@@ -129,6 +131,11 @@ local function runTest()
     flushDeferredCallbacks()
     assert(originalShowCount == 2, "original OnShow runs in NORMAL state")
     assert(GameTooltip.hidden == false, "NORMAL inspect mode lets generic tooltips show")
+
+    db.inspectMode = 0
+    GameTooltip.hidden = false
+    triggerOnShow(GameTooltip)
+    assert(GameTooltip.hidden == true, "generic tooltip never reaches an observable visible state when NoInfo blocks it")
 
     tooltip.GetTooltipData = function() return { type = Enum.TooltipDataType.Item } end
     GameTooltip.hidden = false
