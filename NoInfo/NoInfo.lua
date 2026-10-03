@@ -61,6 +61,15 @@ local function IsTalentOwner(owner)
     return false
 end
 
+local function IsWhitelistedTooltipData(tooltipData)
+    if not tooltipData or tooltipData.type == nil or not Enum or not Enum.TooltipDataType then
+        return false
+    end
+
+    local tooltipType = tooltipData.type
+    return tooltipType == Enum.TooltipDataType.Item or tooltipType == Enum.TooltipDataType.Quest
+end
+
 local function HideGameTooltip(self)
     if db.inspectMode ~= 0 then
         return
@@ -68,7 +77,7 @@ local function HideGameTooltip(self)
 
     local tooltipData = self:GetTooltipData()
 
-    if tooltipData and tooltipData.type == Enum.TooltipDataType.Item then
+    if IsWhitelistedTooltipData(tooltipData) then
         return
     end
 
