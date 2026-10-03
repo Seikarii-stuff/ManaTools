@@ -41,8 +41,18 @@ local function newFrame()
     end
     function frame:Hide() self.hidden = true end
     function frame:Show() self.hidden = false; if self.TriggerScript then self:TriggerScript("OnShow") end end
+    function frame:IsShown() return self.hidden ~= true end
     function frame:GetUnit() return self.unitName, self.unit end
     return frame
+end
+
+local deferredCallbacks = {}
+local function flushDeferredCallbacks()
+    local queue = deferredCallbacks
+    deferredCallbacks = {}
+    for _, callback in ipairs(queue) do
+        callback()
+    end
 end
 
 local function runTest()
@@ -65,6 +75,7 @@ local function runTest()
     local originalOnShow = function() originalShowCount = originalShowCount + 1 end
     tooltip:SetScript("OnShow", originalOnShow)
 
+    C_Timer = { After = function(delay, callback) table.insert(deferredCallbacks, callback) end }
     GameTooltip = tooltip
     Minimap = newFrame()
     MainMenuMicroButton = newFrame()
@@ -90,6 +101,7 @@ local function runTest()
 
     GameTooltip.hidden = false
     wrapper(GameTooltip)
+    flushDeferredCallbacks()
     assert(originalShowCount == 1, "original OnShow still runs")
     assert(GameTooltip.hidden == true, "generic tooltip is hidden when OFF")
 
@@ -107,12 +119,14 @@ local function runTest()
 
     GameTooltip.hidden = false
     wrapper(GameTooltip)
+    flushDeferredCallbacks()
     assert(originalShowCount == 2, "original OnShow runs in NORMAL state")
     assert(GameTooltip.hidden == false, "NORMAL inspect mode lets generic tooltips show")
 
     tooltip.GetTooltipData = function() return { type = Enum.TooltipDataType.Item } end
     GameTooltip.hidden = false
     wrapper(GameTooltip)
+    flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "item tooltip data stays exempt")
 
     db.inspectMode = 0
@@ -120,12 +134,14 @@ local function runTest()
     tooltip.GetOwner = function() return nil end
     GameTooltip.hidden = false
     wrapper(GameTooltip)
+    flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "quest tooltip data stays exempt")
 
     tooltip.GetTooltipData = function() return nil end
     tooltip.GetOwner = function() return nil end
     GameTooltip.hidden = false
     wrapper(GameTooltip)
+    flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "ownerless quest tooltip stays exempt")
 
     tooltip.GetTooltipData = function() return { type = 999 } end
@@ -133,6 +149,7 @@ local function runTest()
     tooltip.GetOwner = function() return WorldMapFrame end
     GameTooltip.hidden = false
     wrapper(GameTooltip)
+    flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "WorldMap owner stays exempt")
 
     local worldMapParent = newFrame()
@@ -145,6 +162,7 @@ local function runTest()
     tooltip.GetOwner = function() return worldMapPoi end
     GameTooltip.hidden = false
     wrapper(GameTooltip)
+    flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "nested WorldMap task POI remains exempt")
 
     local anonymousOwner = { };
@@ -152,6 +170,7 @@ local function runTest()
     tooltip.GetOwner = function() return anonymousOwner end
     GameTooltip.hidden = false
     wrapper(GameTooltip)
+    flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "anonymous owner without a valid map ancestry stays exempt to avoid taint")
 
     local someTaskPoiButton = newFrame()
@@ -160,6 +179,7 @@ local function runTest()
     tooltip.GetOwner = function() return someTaskPoiButton end
     GameTooltip.hidden = false
     wrapper(GameTooltip)
+    flushDeferredCallbacks()
     assert(GameTooltip.hidden == true, "similar TaskPOI names are not treated as World Map")
 
     local someWorldMapWidget = newFrame()
@@ -168,6 +188,7 @@ local function runTest()
     tooltip.GetOwner = function() return someWorldMapWidget end
     GameTooltip.hidden = false
     wrapper(GameTooltip)
+    flushDeferredCallbacks()
     assert(GameTooltip.hidden == true, "similar WorldMap names are not treated as World Map")
 
     PlayerSpellsFrame = newFrame()
@@ -182,6 +203,7 @@ local function runTest()
     tooltip.GetOwner = function() return genericTalentButton end
     GameTooltip.hidden = false
     wrapper(GameTooltip)
+    flushDeferredCallbacks()
     assert(GameTooltip.hidden == false, "PlayerSpellsFrame ancestry keeps talent tooltips visible")
 
     local unrelatedOwner = newFrame()
@@ -190,6 +212,7 @@ local function runTest()
     tooltip.GetOwner = function() return unrelatedOwner end
     GameTooltip.hidden = false
     wrapper(GameTooltip)
+    flushDeferredCallbacks()
     assert(GameTooltip.hidden == true, "non-talent owner still hides")
     tooltip.GetOwner = function() return nil end
 
@@ -232,6 +255,22 @@ local function runTest()
     GameTooltip.unit = "mouseover"
     GameTooltip:TriggerScript("OnTooltipSetUnit")
     assert(calls == 0, "NORMAL state never calls Mythic+ API")
+
+    local staleEcho = newFrame()
+    staleEcho.hidden = false
+    function staleEcho:GetTooltipData() return { type = 999 } end
+    function staleEcho:GetOwner() return newFrame() end
+    local activeTooltip = newFrame()
+    activeTooltip.hidden = false
+    function activeTooltip:GetTooltipData() return { type = 999 } end
+    function activeTooltip:GetOwner() return newFrame() end
+    local priorTooltip = GameTooltip
+    GameTooltip = staleEcho
+    wrapper(staleEcho)
+    GameTooltip = activeTooltip
+    flushDeferredCallbacks()
+    assert(staleEcho.hidden == false, "stale deferred hide does not hide a newer tooltip generation")
+    GameTooltip = priorTooltip
 
     db.inspectMode = 2
     local function setUnit(unit)

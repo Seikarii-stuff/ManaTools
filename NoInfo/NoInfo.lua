@@ -5,6 +5,7 @@ local originalOnShow
 local wrapperInstalled = false
 local inspectButton
 local unitHookInstalled = false
+local hideGeneration = 0
 
 local WORLD_MAP_OWNER_NAMES = {
     WorldMapFrame = true,
@@ -66,46 +67,96 @@ local function IsTalentOwner(owner)
 end
 
 local function IsWhitelistedTooltipData(tooltipData)
-    if not tooltipData or tooltipData.type == nil or not Enum or not Enum.TooltipDataType then
+    if not tooltipData or type(tooltipData) ~= "table" or not Enum or not Enum.TooltipDataType then
         return false
     end
 
     local tooltipType = tooltipData.type
+    if tooltipType == nil then
+        return false
+    end
+
+    if issecretvalue and issecretvalue(tooltipType) then
+        return false
+    end
+
     return tooltipType == Enum.TooltipDataType.Item or tooltipType == Enum.TooltipDataType.Quest
 end
 
-local function HideGameTooltip(self)
+local function ShouldHideGameTooltip(self)
+    if not self or self ~= GameTooltip then
+        return false
+    end
+
     if db.inspectMode ~= 0 then
-        return
+        return false
     end
 
     local tooltipData = self:GetTooltipData()
-
     if IsWhitelistedTooltipData(tooltipData) then
+        return false
+    end
+
+    local owner = self:GetOwner()
+
+    if owner == MainMenuMicroButton or IsWorldMapOwner(owner) or IsTalentOwner(owner) then
+        return false
+    end
+
+    if owner == nil and (not tooltipData or tooltipData.type == nil) then
+        return false
+    end
+
+    if type(owner) == "table" then
+        local ownerName = owner.GetName and owner:GetName()
+        local ownerParent = owner.GetParent and owner:GetParent()
+        if not ownerName and not ownerParent then
+            return false
+        end
+    end
+
+    return true
+end
+
+local function HideGameTooltip(self)
+    if not self or self ~= GameTooltip or not self:IsShown() then
         return
     end
 
-    if self == GameTooltip then
-        local owner = self:GetOwner()
-
-        if owner == MainMenuMicroButton or IsWorldMapOwner(owner) or IsTalentOwner(owner) then
-            return
-        end
-
-        if owner == nil and (not tooltipData or tooltipData.type == nil) then
-            return
-        end
-
-        if type(owner) == "table" then
-            local ownerName = owner.GetName and owner:GetName()
-            local ownerParent = owner.GetParent and owner:GetParent()
-            if not ownerName and not ownerParent then
-                return
-            end
-        end
+    if not ShouldHideGameTooltip(self) then
+        return
     end
 
-    self:Hide()
+    hideGeneration = hideGeneration + 1
+    local generation = hideGeneration
+
+    if not C_Timer or not C_Timer.After then
+        return
+    end
+
+    C_Timer.After(0, function()
+        if hideGeneration ~= generation then
+            return
+        end
+
+        if not self or self ~= GameTooltip then
+            return
+        end
+
+        if not self:IsShown() then
+            return
+        end
+
+        if db.inspectMode ~= 0 then
+            return
+        end
+
+        if not ShouldHideGameTooltip(self) then
+            return
+        end
+
+        self:Hide()
+    end)
 end
 
 local function NoInfoOnShow(self, ...)
