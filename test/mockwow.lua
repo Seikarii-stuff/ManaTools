@@ -47,8 +47,10 @@ local function newFrame()
     function frame:SetChecked(value) self.checked = value end
     function frame:GetChecked() return self.checked end
     function frame:Enable() self.enabled = true; self:TriggerScript("OnEnable") end
-    function frame:Disable() self.enabled = false end
+    function frame:Disable() self.enabled = false; self.disabled = true end
     function frame:IsEnabled() return self.enabled == true end
+    function frame:GetDisabled() return self.disabled == true end
+    function frame:Click() self.clicked = true end
     function frame:GetAlpha() return self.alpha or 1 end
     function frame:SetAlpha(value) self.alpha = value end
     function frame:SetShown(value) self.shown = value end
@@ -99,6 +101,11 @@ function MockWoW.reset(db)
     InterfaceOptions_AddCategory = function() end
     InterfaceOptionsFrame_OpenToCategory = function() end
     hooksecurefunc = function(name, callback) MockWoW.secureHooks[name] = MockWoW.secureHooks[name] or {}; table.insert(MockWoW.secureHooks[name], callback) end
+    StaticPopup_Show = function(which, ...)
+        for _, callback in ipairs(MockWoW.secureHooks["StaticPopup_Show"] or {}) do
+            callback(which, ...)
+        end
+    end
     CreateFrame = function(_, _, _, template)
         local frame = newFrame()
         if template == "InterfaceOptionsCheckButtonTemplate" then frame.Text = newFrame() end
@@ -109,6 +116,9 @@ function MockWoW.reset(db)
     CinematicFrame_CancelCinematic = nil
     MovieFrame = nil
     TalkingHeadFrame = nil
+    StaticPopup1 = { which = nil, button1 = newFrame() }
+    StaticPopup1Button1 = StaticPopup1.button1
+    StaticPopup1Text = newFrame()
 end
 
 function MockWoW.newBonusRollFrame(usePromptButton)

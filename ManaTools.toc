@@ -9,6 +9,7 @@
 Bootstrap.lua
 NoWasteCoin\NoWasteCoin.lua
 CinematicSkip\cinematicskip.lua
+CinematicSkip\profesionskip.lua
 NoInfo\NoInfo.lua
 ChatCopy\ChatCopy.lua
 Options.lua
