@@ -3,6 +3,18 @@ local ADDON_NAME, ManaTools = ...
 local ProfessionSkip = ManaTools.ProfessionSkip or {}
 ManaTools.ProfessionSkip = ProfessionSkip
 
+local function isPlayerDead()
+    if type(UnitIsDeadOrGhost) == "function" and UnitIsDeadOrGhost("player") then
+        return true
+    end
+
+    if type(UnitIsDead) == "function" and UnitIsDead("player") then
+        return true
+    end
+
+    return false
+end
+
 local function clickFirstButton()
     local popup = _G.StaticPopup1
     if not popup then
@@ -24,6 +36,10 @@ local function clickFirstButton()
 end
 
 function ProfessionSkip:OnStaticPopupShown()
+    if isPlayerDead() then
+        return
+    end
+
     clickFirstButton()
 end
 

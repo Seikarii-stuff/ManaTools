@@ -84,6 +84,7 @@ function MockWoW.reset(db)
     MockWoW.challengeActive = false
     MockWoW.guildMembers = {}
     MockWoW.invites = {}
+    MockWoW.playerDead = false
 
     strlower = string.lower
     strtrim = function(value) return (value:gsub("^%s*(.-)%s*$", "%1")) end
@@ -95,6 +96,18 @@ function MockWoW.reset(db)
     C_ChallengeMode = { IsChallengeModeActive = function() return MockWoW.challengeActive end }
     GetNumGuildMembers = function() return #MockWoW.guildMembers end
     GetGuildRosterInfo = function(index) return MockWoW.guildMembers[index] end
+    UnitIsDead = function(unit)
+        if unit == "player" then
+            return MockWoW.playerDead == true
+        end
+        return false
+    end
+    UnitIsDeadOrGhost = function(unit)
+        if unit == "player" then
+            return MockWoW.playerDead == true
+        end
+        return false
+    end
     C_PartyInfo = { InviteUnit = function(name) table.insert(MockWoW.invites, name) end }
     SlashCmdList = {}
     Settings = { RegisterCanvasLayoutCategory = function(_, name) return { GetID = function() return 1 end, name = name } end, RegisterAddOnCategory = function() end, OpenToCategory = function() end }

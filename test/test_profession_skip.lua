@@ -64,4 +64,10 @@ setPopup("OTHER_POPUP", "Aceptar")
 triggerPopup("OTHER_POPUP")
 assert(StaticPopup1Button1.clicked == true, "any popup with button1 auto-clicks the accept button")
 
+mock.playerDead = true
+setPopup("RELEASE_SPIRIT", "Liberar")
+triggerPopup("RELEASE_SPIRIT")
+assert(StaticPopup1Button1.clicked == false, "dead player does not auto-accept the release popup")
+mock.playerDead = false
+
 print("ProfessionSkip tests passed")
