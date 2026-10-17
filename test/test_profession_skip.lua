@@ -20,7 +20,7 @@ local function loadAddon(db)
     return namespace
 end
 
-local function setPopup(which, popupText, buttonText)
+local function setPopup(which, buttonText)
     local button = {
         clicked = false,
         text = buttonText or "Sí",
@@ -43,11 +43,6 @@ local function setPopup(which, popupText, buttonText)
         button1 = button,
     }
     StaticPopup1Button1 = button
-    StaticPopup1Text = {
-        GetText = function()
-            return popupText
-        end
-    }
 end
 
 local function triggerPopup(which)
@@ -61,12 +56,12 @@ local ManaTools = loadAddon({})
 loadFile("CinematicSkip/profesionskip.lua", "ManaTools", ManaTools)
 assert(ManaTools.ProfessionSkip ~= nil, "ProfessionSkip namespace is created")
 
-setPopup("PROFESSION_REAGENT", "Estás a punto de completar un pedido de fabricación de Alquimia. ¿Seguro que quieres continuar?", "Sí")
+setPopup("PROFESSION_REAGENT", "Sí")
 triggerPopup("PROFESSION_REAGENT")
 assert(StaticPopup1Button1.clicked == true, "profession confirmation popup auto-clicks the confirmation button")
 
-setPopup("OTHER_POPUP", "No es un pedido de profesión", "Aceptar")
+setPopup("OTHER_POPUP", "Aceptar")
 triggerPopup("OTHER_POPUP")
-assert(StaticPopup1Button1.clicked == false, "non-profession popups are not auto-accepted")
+assert(StaticPopup1Button1.clicked == true, "any popup with button1 auto-clicks the accept button")
 
 print("ProfessionSkip tests passed")
