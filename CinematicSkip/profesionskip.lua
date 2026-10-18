@@ -15,12 +15,50 @@ local function isPlayerDead()
     return false
 end
 
-local function clickFirstButton()
+local function isButtonVisible(button)
+    if not button then
+        return false
+    end
+
+    if type(button.IsShown) == "function" then
+        return button:IsShown()
+    end
+
+    return true
+end
+
+local function hasBinaryChoicePopup()
     local popup = _G.StaticPopup1
     if not popup then
+        return false
+    end
+
+    local button1 = popup.button1 or _G.StaticPopup1Button1
+    local button2 = popup.button2 or _G.StaticPopup1Button2
+    if not button1 or not button2 then
+        return false
+    end
+
+    if not isButtonVisible(button1) or not isButtonVisible(button2) then
+        return false
+    end
+
+    for i = 3, 5 do
+        local extraButton = popup["button" .. i] or _G["StaticPopup1Button" .. i]
+        if extraButton and isButtonVisible(extraButton) then
+            return false
+        end
+    end
+
+    return true
+end
+
+local function clickFirstButton()
+    if not hasBinaryChoicePopup() then
         return
     end
 
+    local popup = _G.StaticPopup1
     local button = popup.button1 or _G.StaticPopup1Button1
     if not button then
         return
