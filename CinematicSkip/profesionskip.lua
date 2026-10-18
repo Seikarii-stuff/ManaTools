@@ -3,6 +3,12 @@ local ADDON_NAME, ManaTools = ...
 local ProfessionSkip = ManaTools.ProfessionSkip or {}
 ManaTools.ProfessionSkip = ProfessionSkip
 
+local AUTO_ACCEPT_DIALOGS = {
+    GENERIC_CONFIRMATION = true,
+    GOSSIP_CONFIRM = true,
+    PROFESSION_REAGENT = true,
+}
+
 local function isPlayerDead()
     if type(UnitIsDeadOrGhost) == "function" and UnitIsDeadOrGhost("player") then
         return true
@@ -73,8 +79,16 @@ local function clickFirstButton()
     end
 end
 
-function ProfessionSkip:OnStaticPopupShown()
-    if isPlayerDead() then
+local function shouldAutoAcceptPopup(dialogName)
+    if type(dialogName) ~= "string" then
+        return false
+    end
+
+    return AUTO_ACCEPT_DIALOGS[dialogName:upper()] == true
+end
+
+function ProfessionSkip:OnStaticPopupShown(dialogName)
+    if isPlayerDead() or not shouldAutoAcceptPopup(dialogName) then
         return
     end
 
@@ -88,8 +102,8 @@ function ProfessionSkip:Install()
 
     self.installed = true
 
-    hooksecurefunc("StaticPopup_Show", function()
-        ProfessionSkip:OnStaticPopupShown()
+    hooksecurefunc("StaticPopup_Show", function(dialogName)
+        ProfessionSkip:OnStaticPopupShown(dialogName)
     end)
 end
 

@@ -95,9 +95,17 @@ local ManaTools = loadAddon({})
 loadFile("CinematicSkip/profesionskip.lua", "ManaTools", ManaTools)
 assert(ManaTools.ProfessionSkip ~= nil, "ProfessionSkip namespace is created")
 
-setPopup("PROFESSION_REAGENT", "Sí", true)
-triggerPopup("PROFESSION_REAGENT")
-assert(StaticPopup1Button1.clicked == true, "binary profession confirmation popup auto-clicks the confirmation button")
+setPopup("GENERIC_CONFIRMATION", "Sí", true)
+triggerPopup("GENERIC_CONFIRMATION")
+assert(StaticPopup1Button1.clicked == true, "generic confirmation dialog auto-clicks the confirmation button")
+
+setPopup("GOSSIP_CONFIRM", "Aceptar", true)
+triggerPopup("GOSSIP_CONFIRM")
+assert(StaticPopup1Button1.clicked == true, "gossip confirmation dialog auto-clicks the confirmation button")
+
+setPopup("OTHER_TWO_BUTTON_POPUP", "Sí", true)
+triggerPopup("OTHER_TWO_BUTTON_POPUP")
+assert(StaticPopup1Button1.clicked == false, "unrelated two-button popup is not auto-accepted")
 
 setPopup("SINGLE_OPTION_POPUP", "Cancelar", false)
 triggerPopup("SINGLE_OPTION_POPUP")
