@@ -33,7 +33,7 @@ do
     local namespace, queue = loadQueueAddon({})
     assert(namespace.DB == ManaToolsDB, "ManaTools.DB points at the shared DB")
     assert(namespace.DB.QueueAutoAccept ~= nil, "QueueAutoAccept DB branch exists")
-    assert(namespace.DB.QueueAutoAccept.enabled == false, "QueueAutoAccept defaults to disabled")
+    assert(namespace.DB.QueueAutoAccept.enabled == true, "QueueAutoAccept defaults to enabled")
     assert(namespace.QueueAutoAccept == queue, "feature namespace is exposed")
 end
 

@@ -167,7 +167,7 @@ Behavior:
 Persistent settings:
 
 ```lua
-ManaToolsDB.QueueAutoAccept.enabled = false
+ManaToolsDB.QueueAutoAccept.enabled = true
 ```
 
 Queue resolution prefers valid, explicit information from the client APIs. If no API can provide a role that matches the invite permissions, the module intentionally does nothing rather than inventing a role and accepting incorrectly.

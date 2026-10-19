@@ -20,7 +20,7 @@ if ManaTools.DB.ChatCopy.enabled == nil then
     ManaTools.DB.ChatCopy.enabled = false
 end
 if ManaTools.DB.QueueAutoAccept.enabled == nil then
-    ManaTools.DB.QueueAutoAccept.enabled = false
+    ManaTools.DB.QueueAutoAccept.enabled = true
 end
 if ManaTools.DB.NoInfo.inspectMode == nil then
     ManaTools.DB.NoInfo.inspectMode = 0
