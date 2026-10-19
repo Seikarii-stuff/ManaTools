@@ -85,6 +85,15 @@ function MockWoW.reset(db)
     MockWoW.guildMembers = {}
     MockWoW.invites = {}
     MockWoW.playerDead = false
+    GetSpecializationRole = nil
+    GetLFGRoles = nil
+    CompleteLFGRoleCheck = nil
+    StaticPopup_Hide = nil
+    StaticPopupSpecial_Hide = nil
+    AcceptGroup = nil
+    C_SpecializationInfo = nil
+    LFGInvitePopup = nil
+    LFDRoleCheckPopup = nil
 
     strlower = string.lower
     strtrim = function(value) return (value:gsub("^%s*(.-)%s*$", "%1")) end

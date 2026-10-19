@@ -20,10 +20,10 @@ local cinematicSkipPassed = execute("lua test/test_cinematic_skip.lua")
 local professionSkipPassed = execute("lua test/test_profession_skip.lua")
 local noInfoPassed = execute("lua test/test_no_info.lua")
 local chatCopyPassed = execute("lua test/test_chat_copy.lua")
-local queueRolePassed = execute("lua test/test_queue_role_auto_accept.lua")
+local queueAutoAcceptPassed = execute("lua test/test_queue_auto_accept.lua")
 local testsPassed = noWastePassed and manaCoinPassed and cinematicSkipPassed and professionSkipPassed and noInfoPassed
 if not chatCopyPassed then testsPassed = false end
-if not queueRolePassed then testsPassed = false end
+if not queueAutoAcceptPassed then testsPassed = false end
 if not testsPassed then
     print("TESTS: FAIL")
     print("One or more test commands failed. Review the failure output above.")
@@ -49,7 +49,7 @@ print("CinematicSkip tests: " .. (cinematicSkipPassed and "PASS" or "FAIL"))
 print("ProfessionSkip tests: " .. (professionSkipPassed and "PASS" or "FAIL"))
 print("NoInfo tests: " .. (noInfoPassed and "PASS" or "FAIL"))
 print("ChatCopy tests: " .. (chatCopyPassed and "PASS" or "FAIL"))
-print("QueueRoleAutoAccept tests: " .. (queueRolePassed and "PASS" or "FAIL"))
+print("QueueAutoAccept tests: " .. (queueAutoAcceptPassed and "PASS" or "FAIL"))
 print("Tests: " .. (testsPassed and "PASS" or "FAIL"))
 print("Benchmark: " .. (benchmarkPassed and "PASS" or "FAIL"))
 print("Benchmark results: test/results/benchmark.txt")

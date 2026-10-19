@@ -12,7 +12,7 @@ CinematicSkip\cinematicskip.lua
 CinematicSkip\profesionskip.lua
 NoInfo\NoInfo.lua
 ChatCopy\ChatCopy.lua
+QueueAutoAccept\QueueAutoAccept.lua
 Options.lua
 SlashCmd.lua
-QueueAutoAccept\QueueAutoAccept.lua
 

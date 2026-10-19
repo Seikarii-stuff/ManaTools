@@ -9,6 +9,7 @@ ManaTools.DB.NoWasteCoin = ManaTools.DB.NoWasteCoin or {}
 ManaTools.DB.CinematicSkip = ManaTools.DB.CinematicSkip or {}
 ManaTools.DB.NoInfo = ManaTools.DB.NoInfo or {}
 ManaTools.DB.ChatCopy = ManaTools.DB.ChatCopy or {}
+ManaTools.DB.QueueAutoAccept = ManaTools.DB.QueueAutoAccept or {}
 if ManaTools.DB.CinematicSkip.enabled == nil then
     ManaTools.DB.CinematicSkip.enabled = true
 end
@@ -17,6 +18,9 @@ if ManaTools.DB.NoInfo.enabled == nil then
 end
 if ManaTools.DB.ChatCopy.enabled == nil then
     ManaTools.DB.ChatCopy.enabled = false
+end
+if ManaTools.DB.QueueAutoAccept.enabled == nil then
+    ManaTools.DB.QueueAutoAccept.enabled = false
 end
 if ManaTools.DB.NoInfo.inspectMode == nil then
     ManaTools.DB.NoInfo.inspectMode = 0
@@ -28,5 +32,6 @@ end
 ManaTools.NoWasteCoin = ManaTools.NoWasteCoin or {}
 ManaTools.CinematicSkip = ManaTools.CinematicSkip or {}
 ManaTools.NoInfo = ManaTools.NoInfo or {}
+ManaTools.QueueAutoAccept = ManaTools.QueueAutoAccept or {}
 ManaTools.ADDON_NAME = ADDON_NAME
 ManaTools.VERSION = "1.1.0"

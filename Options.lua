@@ -3,6 +3,7 @@ local ADDON_NAME, ManaTools = ...
 local cinematicSkipDB = ManaTools.DB.CinematicSkip
 local noInfoDB = ManaTools.DB.NoInfo
 local chatCopyDB = ManaTools.DB.ChatCopy
+local queueAutoAcceptDB = ManaTools.DB.QueueAutoAccept
 
 local panel = CreateFrame("Frame")
 panel.name = "ManaTools"
@@ -49,10 +50,25 @@ chatCopy:SetScript("OnClick", function(self)
     end
 end)
 
+local queueAutoAcceptTitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+queueAutoAcceptTitle:SetPoint("TOPLEFT", chatCopy, "BOTTOMLEFT", 0, -18)
+queueAutoAcceptTitle:SetText("Queue Auto Accept")
+
+local queueAutoAccept = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+queueAutoAccept:SetPoint("TOPLEFT", queueAutoAcceptTitle, "BOTTOMLEFT", 0, -8)
+queueAutoAccept.Text:SetText("Enable Queue Auto Accept")
+queueAutoAccept:SetScript("OnClick", function(self)
+    queueAutoAcceptDB.enabled = self:GetChecked() == true
+    if ManaTools.QueueAutoAccept and ManaTools.QueueAutoAccept.Update then
+        ManaTools.QueueAutoAccept:Update()
+    end
+end)
+
 panel:SetScript("OnShow", function()
     cinematicSkip:SetChecked(cinematicSkipDB.enabled)
     noInfo:SetChecked(noInfoDB.enabled)
     chatCopy:SetChecked(chatCopyDB.enabled)
+    queueAutoAccept:SetChecked(queueAutoAcceptDB.enabled)
 end)
 
 if Settings and Settings.RegisterCanvasLayoutCategory then
