@@ -1,6 +1,6 @@
 # ManaTools
 
-World of Warcraft addon that groups three small quality-of-life features under one addon: **NoWasteCoin**, **CinematicSkip**, and **NoInfo**.
+World of Warcraft addon that groups four small quality-of-life features under one addon: **NoWasteCoin**, **CinematicSkip**, **NoInfo**, and **QueueAutoAccept**.
 
 > **Repository / maintenance note:** This README is intentionally written as an implementation-oriented reference for contributors and coding agents. Prefer the source files and `.toc` as the source of truth when behavior differs from this document.
 
@@ -28,6 +28,8 @@ World of Warcraft addon that groups three small quality-of-life features under o
 │   └── NoInfo.lua                 # Tooltip filtering + optional Mythic+ rating
 ├── NoWasteCoin/
 │   └── NoWasteCoin.lua             # Bonus Roll spending guard
+├── QueueAutoAccept/
+│   └── QueueAutoAccept.lua         # Queue invite and LFG role auto-accept
 ├── test/
 │   ├── mockwow.lua                 # WoW API mock environment
 │   ├── test_all.lua
@@ -35,7 +37,8 @@ World of Warcraft addon that groups three small quality-of-life features under o
 │   ├── test_mana_coin.lua
 │   ├── test_no_info.lua
 │   ├── test_no_waste_coin.lua
-│   └── test_no_waste_coin_behavior.lua
+│   ├── test_no_waste_coin_behavior.lua
+│   └── test_queue_auto_accept.lua
 ├── test/perf/
 │   └── benchmark.lua               # Performance benchmark
 ├── test/results/
@@ -52,6 +55,7 @@ World of Warcraft addon that groups three small quality-of-life features under o
 ManaToolsDB.NoWasteCoin
 ManaToolsDB.CinematicSkip
 ManaToolsDB.NoInfo
+ManaToolsDB.QueueAutoAccept
 ```
 
 Feature modules expose their implementation through the shared namespace:
@@ -60,6 +64,7 @@ Feature modules expose their implementation through the shared namespace:
 ManaTools.NoWasteCoin
 ManaTools.CinematicSkip
 ManaTools.NoInfo
+ManaTools.QueueAutoAccept
 ```
 
 Do not introduce unrelated global state when the shared namespace or feature-local state is sufficient.
@@ -72,8 +77,10 @@ Do not introduce unrelated global state when the shared namespace or feature-loc
 2. `NoWasteCoin/NoWasteCoin.lua`
 3. `CinematicSkip/cinematicskip.lua`
 4. `NoInfo/NoInfo.lua`
-5. `Options.lua`
-6. `SlashCmd.lua`
+5. `ChatCopy/ChatCopy.lua`
+6. `QueueAutoAccept/QueueAutoAccept.lua`
+7. `Options.lua`
+8. `SlashCmd.lua`
 
 This order matters. `Bootstrap.lua` must remain before feature modules, and settings/slash-command code assumes the feature namespaces already exist.
 
@@ -145,12 +152,34 @@ ManaToolsDB.NoInfo.inspectMode = 0 -- valid values: 0, 1, 2
 
 The bootstrap normalizes legacy boolean values: `true → 1`, `false → 0`.
 
+### QueueAutoAccept
+
+Purpose: automatically accept qualifying party invites and role-check popups while the module remains enabled.
+
+Behavior:
+
+- Tracks `PARTY_INVITE_REQUEST` and `LFG_ROLE_CHECK_SHOW` only when `ManaToolsDB.QueueAutoAccept.enabled` is `true`.
+- Resolves a valid role from the active specialization or `GetLFGRoles()` only when the role is actually permitted by the invite and exposed by the API.
+- Leaves the choice untouched when the role cannot be determined reliably instead of guessing a tank/healer/DPS fallback.
+- Calls `AcceptGroup()` and closes only the relevant invite popups after a successful invite flow.
+- Clears pending hide state on disable and on unrelated roster updates.
+
+Persistent settings:
+
+```lua
+ManaToolsDB.QueueAutoAccept.enabled = true
+```
+
+Queue resolution prefers valid, explicit information from the client APIs. If no API can provide a role that matches the invite permissions, the module intentionally does nothing rather than inventing a role and accepting incorrectly.
+
 ## Settings and commands
 
 The addon registers a settings category named **ManaTools**. `Options.lua` exposes toggles for:
 
  - CinematicSkip → enabled/disabled.
  - NoInfo → enabled/disabled.
+ - ChatCopy → enabled/disabled.
+ - QueueAutoAccept → enabled/disabled.
 
 Slash command:
 
@@ -194,6 +223,13 @@ The repository contains Lua tests plus a WoW API mock. Before changing behavior:
 3. Update/add tests for behavior changes.
 4. Run the complete test suite and the relevant focused test(s).
 5. For performance-sensitive changes, run the benchmark under `test/perf/` and inspect the result under `test/results/`.
+
+The repository uses Lua plus a shared `test/mockwow.lua` harness. Run the focused test for a feature, then the full suite from the addon root with the same Lua command used by the project:
+
+```bash
+lua test/test_queue_auto_accept.lua
+lua test/test_all.lua
+```
 
 There is no dependency manifest or build system currently documented in the repository, so do not invent a package-manager workflow. If a test runner is not obvious from the repository, inspect the test files and environment before choosing a command.
 
