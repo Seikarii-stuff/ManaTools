@@ -17,6 +17,7 @@ local function loadQueueAddon(db)
     local namespace = {}
     loadFile("Bootstrap.lua", "ManaTools", namespace)
     ManaTools = namespace
+    loadFile("QueueAutoAccept/AutoInvite.lua", "ManaTools", namespace)
     loadFile("QueueAutoAccept/QueueAutoAccept.lua", "ManaTools", namespace)
     return namespace, namespace.QueueAutoAccept
 end
