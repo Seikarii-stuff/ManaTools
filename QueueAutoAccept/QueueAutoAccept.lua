@@ -99,6 +99,19 @@ local function AcceptPartyInvite(_, isTank, isHealer, isDamage)
         return
     end
 
+    local hasRoleFilter = isTank ~= nil or isHealer ~= nil or isDamage ~= nil
+    if not hasRoleFilter then
+        local role = ResolveInviteRole(true, true, true)
+        if role then
+            SelectInviteRole(role)
+        end
+        if AcceptGroup then
+            AcceptGroup()
+        end
+        pendingInviteHide = true
+        return
+    end
+
     if type(isTank) ~= "boolean" and type(isHealer) ~= "boolean" and type(isDamage) ~= "boolean" then
         return
     end

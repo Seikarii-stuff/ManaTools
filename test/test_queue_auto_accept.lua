@@ -71,7 +71,22 @@ do
     assert(roleButtonTank.checkButton:GetChecked() ~= true, "disabled module does not auto-select roles")
 end
 
--- 4. Valid invite resolves to a permitted role and accepts the group.
+-- 4. Plain party invite without role booleans is still accepted on the first invite.
+do
+    local namespace, queue = loadQueueAddon({ QueueAutoAccept = { enabled = true } })
+    local acceptCalls = 0
+    AcceptGroup = function() acceptCalls = acceptCalls + 1 end
+    GetSpecialization = function() return 1 end
+    GetSpecializationRole = function() return "HEALER" end
+    _G.LFGInvitePopupRoleButtonTank = { checkButton = { SetChecked = function(self, value) self.checked = value end, GetChecked = function(self) return self.checked end } }
+    _G.LFGInvitePopupRoleButtonHealer = { checkButton = { SetChecked = function(self, value) self.checked = value end, GetChecked = function(self) return self.checked end } }
+    _G.LFGInvitePopupRoleButtonDPS = { checkButton = { SetChecked = function(self, value) self.checked = value end, GetChecked = function(self) return self.checked end } }
+    mock.fireEvent("PARTY_INVITE_REQUEST", "PlayerName")
+    assert(acceptCalls == 1, "plain party invite is accepted when enabled")
+    assert(_G.LFGInvitePopupRoleButtonHealer.checkButton:GetChecked() == true, "role is selected from specialization when no explicit invite roles are supplied")
+end
+
+-- 5. Valid invite resolves to a permitted role and accepts the group.
 do
     local namespace, queue = loadQueueAddon({ QueueAutoAccept = { enabled = true } })
     local acceptCalls = 0
@@ -86,7 +101,7 @@ do
     assert(_G.LFGInvitePopupRoleButtonHealer.checkButton:GetChecked() == true, "valid healer role is selected")
 end
 
--- 5. Explicit role preference is respected when valid; no arbitrary fallback is invented.
+-- 6. Explicit role preference is respected when valid; no arbitrary fallback is invented.
 do
     local namespace, queue = loadQueueAddon({ QueueAutoAccept = { enabled = true } })
     local acceptCalls = 0
