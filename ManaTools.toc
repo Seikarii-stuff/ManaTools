@@ -1,6 +1,6 @@
 ## Interface: 120100, 120150
 ## Title: ManaTools
-## Notes: Avoids wasting coin.
+## Notes: QoL addon for chat, skips, queues, tooltips, and logging.
 ## Author: Seikarii
 ## Version: 1.1.0
 ## IconTexture: 136159
