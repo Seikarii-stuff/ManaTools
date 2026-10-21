@@ -12,6 +12,7 @@ CinematicSkip\cinematicskip.lua
 CinematicSkip\profesionskip.lua
 NoInfo\NoInfo.lua
 ChatCopy\ChatCopy.lua
+Permalogging\Permalogging.lua
 QueueAutoAccept\AutoInvite.lua
 QueueAutoAccept\QueueAutoAccept.lua
 Options.lua

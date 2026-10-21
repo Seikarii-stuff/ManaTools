@@ -4,6 +4,7 @@ local cinematicSkipDB = ManaTools.DB.CinematicSkip
 local noInfoDB = ManaTools.DB.NoInfo
 local chatCopyDB = ManaTools.DB.ChatCopy
 local queueAutoAcceptDB = ManaTools.DB.QueueAutoAccept
+local permaloggingDB = ManaTools.DB.Permalogging
 
 local panel = CreateFrame("Frame")
 panel.name = "ManaTools"
@@ -64,11 +65,26 @@ queueAutoAccept:SetScript("OnClick", function(self)
     end
 end)
 
+local permaloggingTitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+permaloggingTitle:SetPoint("TOPLEFT", queueAutoAccept, "BOTTOMLEFT", 0, -18)
+permaloggingTitle:SetText("Permalogging")
+
+local permalogging = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+permalogging:SetPoint("TOPLEFT", permaloggingTitle, "BOTTOMLEFT", 0, -8)
+permalogging.Text:SetText("Keep combat log active")
+permalogging:SetScript("OnClick", function(self)
+    permaloggingDB.enabled = self:GetChecked() == true
+    if ManaTools.Permalogging and ManaTools.Permalogging.Update then
+        ManaTools.Permalogging:Update()
+    end
+end)
+
 panel:SetScript("OnShow", function()
     cinematicSkip:SetChecked(cinematicSkipDB.enabled)
     noInfo:SetChecked(noInfoDB.enabled)
     chatCopy:SetChecked(chatCopyDB.enabled)
     queueAutoAccept:SetChecked(queueAutoAcceptDB.enabled)
+    permalogging:SetChecked(permaloggingDB.enabled)
 end)
 
 if Settings and Settings.RegisterCanvasLayoutCategory then

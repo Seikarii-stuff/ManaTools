@@ -20,9 +20,11 @@ local cinematicSkipPassed = execute("lua test/test_cinematic_skip.lua")
 local professionSkipPassed = execute("lua test/test_profession_skip.lua")
 local noInfoPassed = execute("lua test/test_no_info.lua")
 local chatCopyPassed = execute("lua test/test_chat_copy.lua")
+local permaloggingPassed = execute("lua test/test_permalogging.lua")
 local queueAutoAcceptPassed = execute("lua test/test_queue_auto_accept.lua")
 local testsPassed = noWastePassed and manaCoinPassed and cinematicSkipPassed and professionSkipPassed and noInfoPassed
 if not chatCopyPassed then testsPassed = false end
+if not permaloggingPassed then testsPassed = false end
 if not queueAutoAcceptPassed then testsPassed = false end
 if not testsPassed then
     print("TESTS: FAIL")
@@ -49,6 +51,7 @@ print("CinematicSkip tests: " .. (cinematicSkipPassed and "PASS" or "FAIL"))
 print("ProfessionSkip tests: " .. (professionSkipPassed and "PASS" or "FAIL"))
 print("NoInfo tests: " .. (noInfoPassed and "PASS" or "FAIL"))
 print("ChatCopy tests: " .. (chatCopyPassed and "PASS" or "FAIL"))
+print("Permalogging tests: " .. (permaloggingPassed and "PASS" or "FAIL"))
 print("QueueAutoAccept tests: " .. (queueAutoAcceptPassed and "PASS" or "FAIL"))
 print("Tests: " .. (testsPassed and "PASS" or "FAIL"))
 print("Benchmark: " .. (benchmarkPassed and "PASS" or "FAIL"))
