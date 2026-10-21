@@ -1,6 +1,6 @@
 ManaTools benchmark results
 ===========================
-Generated: 2026-10-21 21:11:45 UTC
+Generated: 2026-10-21 21:23:07 UTC
 Iterations per hot path: 10000
 Warmup per hot path: 1000
 
@@ -8,19 +8,19 @@ Warmup per hot path: 1000
 CinematicSkip benchmarks
 ------------------------
 CINEMATIC_START                          0.005000 s       2000000 calls/s         0.500 us/call
-PLAY_MOVIE                               0.015000 s        666667 calls/s         1.500 us/call
-TALKINGHEAD_REQUESTED                    0.017000 s        588235 calls/s         1.700 us/call
+PLAY_MOVIE                               0.017000 s        588235 calls/s         1.700 us/call
+TALKINGHEAD_REQUESTED                    0.015000 s        666667 calls/s         1.500 us/call
 
 ChatCopy benchmarks
 -------------------
-ChatCopy BUILD_TEXT_FROM_GENERAL         1.054000 s          9488 calls/s       105.400 us/call
-ChatCopy OPEN_POPUP                      1.064000 s          9398 calls/s       106.400 us/call
+ChatCopy BUILD_TEXT_FROM_GENERAL         1.033000 s          9681 calls/s       103.300 us/call
+ChatCopy OPEN_POPUP                      1.055000 s          9479 calls/s       105.500 us/call
 
 NoInfo benchmarks
 ----------------
 NoInfo OFF                               0.006000 s       1666667 calls/s         0.600 us/call
 NoInfo normal inspection                 0.005000 s       2000000 calls/s         0.500 us/call
-NoInfo inspection + rating               0.005000 s       2000000 calls/s         0.500 us/call
+NoInfo inspection + rating               0.006000 s       1666667 calls/s         0.600 us/call
 NoInfo disabled: original OnShow         0.001000 s      10000000 calls/s         0.100 us/call
 
 Allocations: NOT AVAILABLE (Lua benchmark environment does not expose a reliable per-call allocation metric).

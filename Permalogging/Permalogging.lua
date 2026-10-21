@@ -10,14 +10,19 @@ if db.enabled == nil then
     db.enabled = true
 end
 
-local lastRelevantInstanceType = nil
+local currentEntryState = {
+    active = false,
+    pending = false,
+    instanceType = nil,
+}
 
-local function IsRelevantInstance()
-    if type(IsInInstance) ~= "function" then
-        return false
-    end
+local function ResetEntryState()
+    currentEntryState.active = false
+    currentEntryState.pending = false
+    currentEntryState.instanceType = nil
+end
 
-    local inInstance, instanceType = IsInInstance()
+local function IsRelevantInstance(inInstance, instanceType)
     if inInstance ~= true then
         return false
     end
@@ -25,42 +30,75 @@ local function IsRelevantInstance()
     return instanceType == "party" or instanceType == "raid"
 end
 
+local function TryActivateCombatLog()
+    local loggingCombat = _G.LoggingCombat
+    if type(loggingCombat) ~= "function" then
+        return false
+    end
+
+    local activationResult = loggingCombat(true)
+    if activationResult ~= true then
+        return false
+    end
+
+    local confirmed = loggingCombat()
+    if confirmed ~= true then
+        return false
+    end
+
+    print("|cff00ff00ManaTools: Combat log activo.|r")
+    return true
+end
+
 function Permalogging:Update()
     if db.enabled ~= true then
         return false
     end
 
-    if not IsRelevantInstance() then
-        lastRelevantInstanceType = nil
+    local inInstance, instanceType
+    local isInInstance = _G.IsInInstance
+    if type(isInInstance) == "function" then
+        inInstance, instanceType = isInInstance()
+    else
+        inInstance = false
+        instanceType = nil
+    end
+
+    if not IsRelevantInstance(inInstance, instanceType) then
+        ResetEntryState()
         return false
     end
 
-    local inInstance, instanceType = IsInInstance()
-    if inInstance ~= true then
-        lastRelevantInstanceType = nil
-        return false
-    end
-
-    if lastRelevantInstanceType == instanceType then
+    if currentEntryState.active == true and currentEntryState.instanceType == instanceType then
         return true
     end
 
-    lastRelevantInstanceType = instanceType
-
-    if type(LoggingCombat) ~= "function" then
+    local loggingCombat = _G.LoggingCombat
+    if type(loggingCombat) ~= "function" then
         return false
     end
 
-    local active = LoggingCombat()
+    local active = loggingCombat()
     if active == true then
+        currentEntryState.active = true
+        currentEntryState.pending = false
+        currentEntryState.instanceType = instanceType
         return true
     end
 
     if active == false then
-        LoggingCombat(true)
-        return true
+        currentEntryState.pending = true
+        currentEntryState.instanceType = instanceType
+        if TryActivateCombatLog() then
+            currentEntryState.active = true
+            currentEntryState.pending = false
+            return true
+        end
+        return false
     end
 
+    currentEntryState.pending = true
+    currentEntryState.instanceType = instanceType
     return false
 end
 
@@ -71,6 +109,7 @@ end
 
 function Permalogging:Disable()
     db.enabled = false
+    ResetEntryState()
 end
 
 function Permalogging:OnEvent()
@@ -79,8 +118,9 @@ function Permalogging:OnEvent()
     end
 end
 
-if CreateFrame and type(CreateFrame) == "function" then
-    local frame = CreateFrame("Frame")
+local createFrame = _G.CreateFrame
+if type(createFrame) == "function" then
+    local frame = createFrame("Frame")
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
     frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     frame:SetScript("OnEvent", function(_, event)

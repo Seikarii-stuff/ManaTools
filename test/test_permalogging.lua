@@ -5,6 +5,7 @@
 local loader = loadstring or load
 
 local function makeMockEnvironment()
+    local originalPrint = _G.print
     local state = {
         enabled = true,
         inInstance = false,
@@ -12,8 +13,10 @@ local function makeMockEnvironment()
         combatLogState = false,
         activationCalls = 0,
         queryCalls = 0,
-        queryIsNil = false,
-        loggingResult = nil,
+        querySequence = {},
+        activationResult = true,
+        chatMessages = {},
+        registeredEvents = {},
     }
 
     local events = {}
@@ -32,22 +35,41 @@ local function makeMockEnvironment()
     _G.RunSlashCmd = nil
     _G.SlashCmdList = nil
     _G.IsCombatLogEnabled = nil
+    _G.print = function(message)
+        table.insert(state.chatMessages, message)
+        if originalPrint then
+            originalPrint(message)
+        end
+    end
     _G.IsInInstance = function()
         return state.inInstance, state.instanceType
     end
     _G.LoggingCombat = function(force)
         if force == true then
             state.activationCalls = state.activationCalls + 1
+            if state.activationResult ~= nil then
+                state.combatLogState = state.activationResult == true
+                return state.activationResult
+            end
             state.combatLogState = true
             return true
         end
 
         state.queryCalls = state.queryCalls + 1
-        if state.queryIsNil == true then
-            return nil
-        end
-        if state.loggingResult ~= nil then
-            return state.loggingResult
+        if #state.querySequence > 0 then
+            local nextValue = table.remove(state.querySequence, 1)
+            if nextValue == "__NIL__" then
+                return nil
+            end
+            if nextValue == "__FALSE__" then
+                state.combatLogState = false
+                return false
+            end
+            if nextValue == "__TRUE__" then
+                state.combatLogState = true
+                return true
+            end
+            return nextValue
         end
         return state.combatLogState == true
     end
@@ -101,26 +123,29 @@ local function runTest()
     local namespace = loadModule(state)
     fireEvent("PLAYER_ENTERING_WORLD")
     assert(state.activationCalls == 1, "party dungeon enables logging once when inactive")
+    assert(#state.chatMessages == 1, "party dungeon prints a single success message")
     assert(namespace.Permalogging.frame and namespace.Permalogging.frame.registeredEvents["PLAYER_ENTERING_WORLD"], "PLAYER_ENTERING_WORLD is registered")
     assert(namespace.Permalogging.frame and namespace.Permalogging.frame.registeredEvents["ZONE_CHANGED_NEW_AREA"], "ZONE_CHANGED_NEW_AREA is registered")
 
-    state = makeMockEnvironment()
+    state, fireEvent = makeMockEnvironment()
     state.inInstance = true
     state.instanceType = "raid"
     state.combatLogState = false
     namespace = loadModule(state)
     fireEvent("PLAYER_ENTERING_WORLD")
     assert(state.activationCalls == 1, "raid enables logging once when inactive")
+    assert(#state.chatMessages == 1, "raid prints the success message once")
 
-    state = makeMockEnvironment()
+    state, fireEvent = makeMockEnvironment()
     state.inInstance = true
     state.instanceType = "party"
     state.combatLogState = true
     namespace = loadModule(state)
     fireEvent("PLAYER_ENTERING_WORLD")
     assert(state.activationCalls == 0, "active combat log is not re-enabled")
+    assert(#state.chatMessages == 0, "active log does not print success")
 
-    state = makeMockEnvironment()
+    state, fireEvent = makeMockEnvironment()
     state.enabled = false
     state.inInstance = true
     state.instanceType = "party"
@@ -129,39 +154,64 @@ local function runTest()
     fireEvent("PLAYER_ENTERING_WORLD")
     assert(state.queryCalls == 0, "disabled option does not query combat log status")
     assert(state.activationCalls == 0, "disabled option does not activate the combat log")
+    assert(#state.chatMessages == 0, "disabled option does not print success")
 
-    state = makeMockEnvironment()
+    state, fireEvent = makeMockEnvironment()
     state.inInstance = false
     state.instanceType = nil
     namespace = loadModule(state)
     fireEvent("PLAYER_ENTERING_WORLD")
     assert(state.activationCalls == 0, "outside an instance does not enable logging")
+    assert(#state.chatMessages == 0, "outside an instance does not print success")
 
-    state = makeMockEnvironment()
+    state, fireEvent = makeMockEnvironment()
     state.inInstance = false
     state.instanceType = nil
     namespace = loadModule(state)
     fireEvent("ZONE_CHANGED_NEW_AREA")
     assert(state.activationCalls == 0, "LFG join without entering an instance does not activate logging")
+    assert(#state.chatMessages == 0, "LFG without entry does not print success")
 
-    state = makeMockEnvironment()
+    state, fireEvent = makeMockEnvironment()
     state.inInstance = true
     state.instanceType = "party"
-    state.queryIsNil = true
+    state.querySequence = {"__NIL__"}
     namespace = loadModule(state)
     fireEvent("PLAYER_ENTERING_WORLD")
     assert(state.activationCalls == 0, "nil status is not treated as disabled")
+    assert(#state.chatMessages == 0, "nil status does not print success")
 
-    state = makeMockEnvironment()
+    state, fireEvent = makeMockEnvironment()
+    state.inInstance = true
+    state.instanceType = "party"
+    state.querySequence = {"__NIL__", "__FALSE__"}
+    namespace = loadModule(state)
+    fireEvent("PLAYER_ENTERING_WORLD")
+    assert(state.activationCalls == 0, "first nil result remains pending before a later retry")
+    fireEvent("PLAYER_ENTERING_WORLD")
+    assert(state.activationCalls == 1, "a later false result can trigger activation after a pending check")
+    assert(#state.chatMessages == 1, "successful retry prints the message once")
+
+    state, fireEvent = makeMockEnvironment()
     state.inInstance = true
     state.instanceType = "raid"
+    state.activationResult = false
+    namespace = loadModule(state)
+    fireEvent("PLAYER_ENTERING_WORLD")
+    assert(state.activationCalls == 1, "a failed activation request is attempted once")
+    assert(#state.chatMessages == 0, "failed activation does not print a false success message")
+
+    state, fireEvent = makeMockEnvironment()
+    state.inInstance = true
+    state.instanceType = "party"
     state.combatLogState = false
     namespace = loadModule(state)
     fireEvent("PLAYER_ENTERING_WORLD")
     fireEvent("ZONE_CHANGED_NEW_AREA")
-    assert(state.activationCalls == 1, "duplicate event delivery in the same entry does not re-enable logging")
+    assert(state.activationCalls == 1, "duplicate events in the same entry do not reactivate")
+    assert(#state.chatMessages == 1, "duplicate same-entry events do not print multiple success messages")
 
-    state = makeMockEnvironment()
+    state, fireEvent = makeMockEnvironment()
     state.inInstance = true
     state.instanceType = "party"
     state.combatLogState = false
@@ -174,7 +224,16 @@ local function runTest()
     state.instanceType = "raid"
     state.combatLogState = false
     fireEvent("PLAYER_ENTERING_WORLD")
-    assert(state.activationCalls == 2, "re-entry after leaving the instance rechecks and enables again when the log is actually inactive")
+    assert(state.activationCalls == 2, "re-entry after leaving the instance rechecks and re-enables correctly")
+    assert(#state.chatMessages == 2, "re-entry prints a success message for each confirmed activation")
+
+    state, fireEvent = makeMockEnvironment()
+    state.inInstance = true
+    state.instanceType = "party"
+    namespace = loadModule(state)
+    fireEvent("PLAYER_ENTERING_WORLD")
+    assert(namespace.Permalogging.frame and namespace.Permalogging.frame.registeredEvents["ZONE_CHANGED_NEW_AREA"], "event callbacks are registered in this environment")
+    assert(state.activationCalls == 1, "registered event callback path triggers the actual update logic")
 
     print("Permalogging tests: PASS")
 end
