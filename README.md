@@ -1,294 +1,193 @@
 # ManaTools
 
-World of Warcraft addon that groups four small quality-of-life features under one addon: **NoWasteCoin**, **CinematicSkip**, **NoInfo**, and **QueueAutoAccept**.
+ManaTools es un addon de World of Warcraft orientado a calidad de vida. Reúne múltiples utilidades bajo un mismo panel de configuración y un namespace compartido.
 
-> **Repository / maintenance note:** This README is intentionally written as an implementation-oriented reference for contributors and coding agents. Prefer the source files and `.toc` as the source of truth when behavior differs from this document.
+## Características principales
 
-## Project status
+- NoWasteCoin: activa la Bonus Roll actual sin depender de la instancia o dificultad.
+- CinematicSkip: omite cinemáticas, películas y talking heads.
+- NoInfo: oculta tooltips innecesarios y permite modo de inspección con valor de Mythic+.
+- ChatCopy: añade una ventana para copiar el contenido del chat general.
+- QueueAutoAccept: acepta invitaciones y comprobaciones de roles de cola automáticamente.
+- Permalogging: mantiene activo el combat log mientras está habilitado.
 
-- Language: **Lua**
-- Addon interface: **120100**
-- Current addon version: **1.1.0**
-- Author: **Seikarii**
-- Saved variables: `ManaToolsDB`
-- Entry point: `Bootstrap.lua`
-- Load order is defined by `ManaTools.toc`.
+## Estado del proyecto
 
-## Repository layout
+- Lenguaje: Lua
+- Interface: 120100 / 120150
+- Versión: 1.1.0
+- Autor: Seikarii
+- Variables guardadas: ManaToolsDB
+- Punto de entrada: Bootstrap.lua
+- Orden de carga: definida por ManaTools.toc
+
+## Instalación
+
+1. Descarga o clona este repositorio en tu carpeta de addons de WoW.
+2. Asegúrate de que la estructura quede dentro de:
+   `World of Warcraft/_retail_/Interface/AddOns/ManaTools`
+3. Reinicia WoW o recarga la interfaz.
+4. En la pestaña de addons, el panel de configuración aparecerá como "ManaTools".
+
+## Estructura del addon
 
 ```text
-.
-├── Bootstrap.lua                 # Shared namespace + SavedVariables initialization
-├── ManaTools.toc                  # WoW addon manifest and load order
-├── Options.lua                    # Settings UI for all features
-├── SlashCmd.lua                   # /mana command handling
+ManaTools/
+├── Bootstrap.lua
+├── ManaTools.toc
+├── Options.lua
+├── SlashCmd.lua
+├── ChatCopy/
+│   └── ChatCopy.lua
 ├── CinematicSkip/
-│   └── cinematicskip.lua           # Cinematic/movie/talking-head skipping
+│   ├── cinematicskip.lua
+│   └── profesionskip.lua
 ├── NoInfo/
-│   └── NoInfo.lua                 # Tooltip filtering + optional Mythic+ rating
+│   └── NoInfo.lua
 ├── NoWasteCoin/
-│   └── NoWasteCoin.lua             # Bonus Roll spending guard
+│   └── NoWasteCoin.lua
+├── Permalogging/
+│   └── Permalogging.lua
 ├── QueueAutoAccept/
-│   └── QueueAutoAccept.lua         # Queue invite and LFG role auto-accept
+│   ├── AutoInvite.lua
+│   └── QueueAutoAccept.lua
 ├── test/
-│   ├── mockwow.lua                 # WoW API mock environment
+│   ├── mockwow.lua
 │   ├── test_all.lua
+│   ├── test_chat_copy.lua
 │   ├── test_cinematic_skip.lua
 │   ├── test_mana_coin.lua
 │   ├── test_no_info.lua
-│   ├── test_no_waste_coin.lua
 │   ├── test_no_waste_coin_behavior.lua
+│   ├── test_permalogging.lua
+│   ├── test_profession_skip.lua
 │   └── test_queue_auto_accept.lua
-├── test/perf/
-│   └── benchmark.lua               # Performance benchmark
-├── test/results/
-│   └── benchmark.txt               # Benchmark output
-└── docs/
-    └── debt.md                     # Known technical debt
+├── LICENSE
+├── README.md
+└── test/perf/
+    └── benchmark.lua
 ```
 
-## Architecture
+## Orden de carga
 
-`Bootstrap.lua` creates the shared `ManaTools` namespace and binds it to the persistent `ManaToolsDB` table. Each feature stores its own configuration below a dedicated key:
+El addon se carga en este orden desde ManaTools.toc:
+
+1. Bootstrap.lua
+2. NoWasteCoin/NoWasteCoin.lua
+3. CinematicSkip/cinematicskip.lua
+4. CinematicSkip/profesionskip.lua
+5. NoInfo/NoInfo.lua
+6. ChatCopy/ChatCopy.lua
+7. Permalogging/Permalogging.lua
+8. QueueAutoAccept/AutoInvite.lua
+9. QueueAutoAccept/QueueAutoAccept.lua
+10. Options.lua
+11. SlashCmd.lua
+
+Bootstrap se ejecuta antes que los módulos para preparar el namespace y la base de datos compartida.
+
+## Configuración y comandos
+
+El addon crea una categoría llamada ManaTools en la configuración del juego. Desde allí puedes activar o desactivar cada módulo individualmente:
+
+- Cinematic Skip
+- NoInfo
+- Chat Copy
+- Queue Auto Accept
+- Permalogging
+
+### Comandos disponibles
+
+```text
+/mana
+```
+Abre la configuración de ManaTools.
+
+```text
+/coin
+```
+Activa la Bonus Roll actual si hay una abierta.
+
+```text
+/copy
+```
+Activa o desactiva Chat Copy.
+
+## Base de datos y namespaces
+
+Se usa un namespace compartido:
 
 ```lua
-ManaToolsDB.NoWasteCoin
-ManaToolsDB.CinematicSkip
-ManaToolsDB.NoInfo
-ManaToolsDB.QueueAutoAccept
+ManaTools
+ManaTools.DB
 ```
 
-Feature modules expose their implementation through the shared namespace:
+La base de datos persistente se guarda en:
+
+```lua
+ManaToolsDB
+```
+
+Y cada módulo se inicializa dentro del namespace principal, por ejemplo:
 
 ```lua
 ManaTools.NoWasteCoin
 ManaTools.CinematicSkip
 ManaTools.NoInfo
+ManaTools.ChatCopy
 ManaTools.QueueAutoAccept
+ManaTools.Permalogging
 ```
 
-Do not introduce unrelated global state when the shared namespace or feature-local state is sufficient.
-
-### Initialization order
-
-`ManaTools.toc` currently loads:
-
-1. `Bootstrap.lua`
-2. `NoWasteCoin/NoWasteCoin.lua`
-3. `CinematicSkip/cinematicskip.lua`
-4. `NoInfo/NoInfo.lua`
-5. `ChatCopy/ChatCopy.lua`
-6. `QueueAutoAccept/QueueAutoAccept.lua`
-7. `Options.lua`
-8. `SlashCmd.lua`
-
-This order matters. `Bootstrap.lua` must remain before feature modules, and settings/slash-command code assumes the feature namespaces already exist.
-
-## Features
+## Descripción rápida de cada módulo
 
 ### NoWasteCoin
 
-Purpose: provide a small helper to explicitly enable spending the currently open Bonus Roll when requested.
-
-Behavior:
-
-- The module no longer gates Bonus Roll spending by difficulty or instance type.
-- Use `/coin` to enable the current Bonus Roll (one-shot override) when a Bonus Roll frame is active.
-
-The implementation hooks the Bonus Roll UI to offer `EnableCurrentRollOverride()` and `ClearCurrentRollOverride()` helpers; the module no longer maintains persistent settings for content gating.
-
-Relevant public methods:
-
-```lua
-ManaTools.NoWasteCoin.Initialize()
-ManaTools.NoWasteCoin.EnableCurrentRollOverride()
-ManaTools.NoWasteCoin.ClearCurrentRollOverride()
-```
+Permite desbloquear la Bonus Roll actual con un comando manual cuando una tirada está activa. Es útil para evitar que el sistema te impida gastar el roll actual.
 
 ### CinematicSkip
 
-Purpose: automatically skip several presentation interruptions when enabled.
-
-It listens for:
-
-- `CINEMATIC_START` → calls `CinematicFrame_CancelCinematic()` when available.
-- `PLAY_MOVIE` → hides `MovieFrame`.
-- `TALKINGHEAD_REQUESTED` → hides `TalkingHeadFrame`.
-
-Event registration is dynamically enabled/disabled by `ManaTools.CinematicSkip:UpdateEvents()`.
-
-Persistent setting:
-
-```lua
-ManaToolsDB.CinematicSkip.enabled = true
-```
+Se encarga de cancelar o ocultar bloqueos visuales como cinemáticas, películas y talking heads, según el evento que se produzca.
 
 ### NoInfo
 
-Purpose: suppress unnecessary game tooltips while preserving item tooltips and selected UI exceptions.
+Oculta tooltips no esenciales y ofrece modos de inspección para mostrar información de Mythic+ cuando se necesita.
 
-When enabled, the module wraps `GameTooltip`'s `OnShow` script. Non-item tooltips are hidden, except for the tooltip owned by `MainMenuMicroButton`.
+### ChatCopy
 
-It also adds a small minimap button. Clicking it cycles inspect mode:
-
-- `0`: normal tooltip filtering; no Mythic+ rating line.
-- `1`: normal tooltip filtering with inspect mode enabled.
-- `2`: adds the inspected player's current-season Mythic+ rating when available.
-
-Holding **Shift** while clicking sets mode `2` directly.
-
-Mythic+ rating is read with `C_PlayerInfo.GetPlayerMythicPlusRatingSummary(unit)` and appended as:
-
-```text
-Mythic+ Rating: <score>
-```
-
-Persistent settings:
-
-```lua
-ManaToolsDB.NoInfo.enabled = true
-ManaToolsDB.NoInfo.inspectMode = 0 -- valid values: 0, 1, 2
-```
-
-The bootstrap normalizes legacy boolean values: `true → 1`, `false → 0`.
+Añade una ventana emergente para copiar el contenido del chat general sin depender de una tercera herramienta externa.
 
 ### QueueAutoAccept
 
-Purpose: automatically accept qualifying party invites and role-check popups while the module remains enabled.
+Acepta automáticamente invitaciones de grupo y comprobaciones de roles compatibles con la cola actual, siempre que la lógica pueda determinar una opción válida.
 
-Behavior:
+### Permalogging
 
-- Tracks `PARTY_INVITE_REQUEST` and `LFG_ROLE_CHECK_SHOW` only when `ManaToolsDB.QueueAutoAccept.enabled` is `true`.
-- Resolves a valid role from the active specialization or `GetLFGRoles()` only when the role is actually permitted by the invite and exposed by the API.
-- Leaves the choice untouched when the role cannot be determined reliably instead of guessing a tank/healer/DPS fallback.
-- Calls `AcceptGroup()` and closes only the relevant invite popups after a successful invite flow.
-- Clears pending hide state on disable and on unrelated roster updates.
-
-Persistent settings:
-
-```lua
-ManaToolsDB.QueueAutoAccept.enabled = true
-```
-
-Queue resolution prefers valid, explicit information from the client APIs. If no API can provide a role that matches the invite permissions, the module intentionally does nothing rather than inventing a role and accepting incorrectly.
-
-## Settings and commands
-
-The addon registers a settings category named **ManaTools**. `Options.lua` exposes toggles for:
-
- - CinematicSkip → enabled/disabled.
- - NoInfo → enabled/disabled.
- - ChatCopy → enabled/disabled.
- - QueueAutoAccept → enabled/disabled.
-
-Slash command:
-
-```text
-/mana
-```
-
-opens the ManaTools settings panel.
-
-```text
-/coin
-```
-enables the current Bonus Roll override if a Bonus Roll is active.
-
-Any unrecognized `/mana <argument>` currently falls back to opening settings. Preserve this behavior unless there is an explicit reason to change the command interface.
-
-## Compatibility and WoW API assumptions
-
-This is an in-game World of Warcraft addon, not standalone Lua. Code may depend on WoW globals such as:
-
-- `CreateFrame`
-- `GameTooltip`
-- `BonusRollFrame`
-- `C_ChallengeMode`
-- `C_PlayerInfo`
-- `TooltipDataProcessor`
-- `Settings`
-- `InterfaceOptions_AddCategory`
-- WoW event/script APIs
-
-When writing tests outside WoW, extend `test/mockwow.lua` rather than silently replacing production behavior with test-only branches.
-
-The code already contains compatibility checks/fallbacks for some API differences. Preserve those checks when modifying related code.
+Mantiene el combat log activo a lo largo de la sesión, útil para conservar registros de combate aunque el juego o el estado del usuario lo desactive.
 
 ## Testing
 
-The repository contains Lua tests plus a WoW API mock. Before changing behavior:
-
-1. Read the relevant production module.
-2. Read its corresponding test(s).
-3. Update/add tests for behavior changes.
-4. Run the complete test suite and the relevant focused test(s).
-5. For performance-sensitive changes, run the benchmark under `test/perf/` and inspect the result under `test/results/`.
-
-The repository uses Lua plus a shared `test/mockwow.lua` harness. Run the focused test for a feature, then the full suite from the addon root with the same Lua command used by the project:
+El repositorio incluye pruebas Lua con un entorno mock de WoW para validar cada módulo. Se pueden ejecutar individualmente o en conjunto:
 
 ```bash
 lua test/test_queue_auto_accept.lua
 lua test/test_all.lua
 ```
 
-There is no dependency manifest or build system currently documented in the repository, so do not invent a package-manager workflow. If a test runner is not obvious from the repository, inspect the test files and environment before choosing a command.
+La suite completa verifica los principales módulos del addon antes de aceptar cambios de comportamiento.
 
-## Working conventions for agents
+## Compatibilidad
 
-### Before editing
+Este addon depende de APIs del cliente de WoW, como:
 
-- Treat `ManaTools.toc` as authoritative for addon load order and included files.
-- Search the repository for usages before renaming exported tables, SavedVariables keys, slash commands, events, or WoW frame globals.
-- Check `docs/debt.md` for known technical debt.
-- Keep changes scoped: this is a small addon with intentionally separate feature modules.
+- CreateFrame
+- GameTooltip
+- BonusRollFrame
+- C_PlayerInfo
+- Settings
+- InterfaceOptions_AddCategory
+- eventos de WoW y scripts asociados
 
-### When changing persistent data
+## Licencia
 
-Saved data lives in `ManaToolsDB`. If a setting is renamed, removed, or changes type:
-
-- preserve compatibility with existing saved data where practical;
-- normalize legacy values during bootstrap/module initialization;
-- add tests for migration behavior;
-- avoid silently discarding user configuration.
-
-### When changing hooks/events
-
-Be careful with duplicate hooks and wrappers. Existing modules track whether hooks have already been installed and/or which frame/button they belong to. Preserve those guards. Avoid repeatedly wrapping an already wrapped `OnClick`/`OnShow` script.
-
-### When changing secure/UI behavior
-
-NoWasteCoin interacts with the Bonus Roll UI and its click handler. Changes must preserve the actual spending barrier, not only the button's appearance. Avoid insecure operations that could taint protected Blizzard UI code.
-
-### When adding a feature
-
-Prefer:
-
-1. a new feature directory/module;
-2. a dedicated `ManaToolsDB.<Feature>` configuration table;
-3. initialization from `Bootstrap.lua` if defaults/migrations are needed;
-4. explicit inclusion in `ManaTools.toc` in dependency order;
-5. settings in `Options.lua` only if user configuration is required;
-6. tests using the existing mock infrastructure.
-
-## Important implementation details
-
-- `ManaTools.VERSION` is currently hard-coded to `"1.1.0"` in `Bootstrap.lua` and should stay synchronized with the `.toc` version when releasing.
-- `ManaTools.toc` targets Interface `120100`.
-- `ManaToolsDB` is the SavedVariables table and must not be replaced wholesale during module initialization.
-- NoWasteCoin defaults both optional content flags to `false`.
-- CinematicSkip defaults to enabled.
-- NoInfo defaults to enabled with inspect mode `0`.
-- `NoInfo` attempts to support both `TooltipDataProcessor` and the older `GameTooltip:HookScript("OnTooltipSetUnit", ...)` path.
-- The code explicitly checks `issecretvalue` around relevant WoW API values; preserve these checks when touching tooltip/unit/rating logic.
-
-## Scope boundaries
-
-ManaTools is currently a collection of independent quality-of-life modules. Avoid coupling features together unless there is a clear lifecycle/configuration reason. In particular, a change to NoInfo should not require NoWasteCoin changes unless they genuinely share infrastructure.
-
-## License
-
-ManaTools is distributed under the **MIT License**. See [`LICENSE`](LICENSE).
-
-## Contribution guidance
-
-Small, focused pull requests are preferred. Describe behavior changes, compatibility implications, and tests performed. For WoW-specific behavior that cannot be fully tested outside the game client, document the manual verification steps and the client/API assumptions involved.
+Este proyecto se distribuye bajo la licencia incluida en LICENSE.
