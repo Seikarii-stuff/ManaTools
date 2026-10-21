@@ -10,51 +10,19 @@ if db.enabled == nil then
     db.enabled = true
 end
 
-local function IsCombatLogActive()
-    if type(IsCombatLogEnabled) == "function" then
-        local active = IsCombatLogEnabled()
-        if active ~= nil then
-            return active == true
-        end
+local lastRelevantInstanceType = nil
+
+local function IsRelevantInstance()
+    if type(IsInInstance) ~= "function" then
+        return false
     end
 
-    if type(GetCVarBool) == "function" then
-        if GetCVarBool("advancedCombatLogging") then
-            return true
-        end
-        if GetCVarBool("showCombatLog") then
-            return true
-        end
+    local inInstance, instanceType = IsInInstance()
+    if inInstance ~= true then
+        return false
     end
 
-    if type(GetCVar) == "function" then
-        local active = GetCVar("advancedCombatLogging")
-        local visible = GetCVar("showCombatLog")
-        if active == "1" or active == true then
-            return true
-        end
-        if visible == "1" or visible == true then
-            return true
-        end
-    end
-
-    return false
-end
-
-local function EnableCombatLog()
-    if type(SetCVar) == "function" then
-        SetCVar("advancedCombatLogging", "1")
-        SetCVar("showCombatLog", "1")
-    end
-
-    if type(RunSlashCmd) == "function" then
-        RunSlashCmd("/combatlog")
-        return
-    end
-
-    if type(SlashCmdList) == "table" and SlashCmdList.COMBATLOG then
-        SlashCmdList.COMBATLOG()
-    end
+    return instanceType == "party" or instanceType == "raid"
 end
 
 function Permalogging:Update()
@@ -62,12 +30,38 @@ function Permalogging:Update()
         return false
     end
 
-    if IsCombatLogActive() then
+    if not IsRelevantInstance() then
+        lastRelevantInstanceType = nil
+        return false
+    end
+
+    local inInstance, instanceType = IsInInstance()
+    if inInstance ~= true then
+        lastRelevantInstanceType = nil
+        return false
+    end
+
+    if lastRelevantInstanceType == instanceType then
         return true
     end
 
-    EnableCombatLog()
-    return true
+    lastRelevantInstanceType = instanceType
+
+    if type(LoggingCombat) ~= "function" then
+        return false
+    end
+
+    local active = LoggingCombat()
+    if active == true then
+        return true
+    end
+
+    if active == false then
+        LoggingCombat(true)
+        return true
+    end
+
+    return false
 end
 
 function Permalogging:Enable()
@@ -80,13 +74,20 @@ function Permalogging:Disable()
 end
 
 function Permalogging:OnEvent()
-    self:Update()
+    if self and self.Update then
+        self:Update()
+    end
 end
 
 if CreateFrame and type(CreateFrame) == "function" then
     local frame = CreateFrame("Frame")
-    frame:RegisterEvent("PLAYER_LOGIN")
-    frame:SetScript("OnEvent", function()
+    frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+    frame:SetScript("OnEvent", function(_, event)
+        if event ~= "PLAYER_ENTERING_WORLD" and event ~= "ZONE_CHANGED_NEW_AREA" then
+            return
+        end
+
         if Permalogging and Permalogging.Update then
             Permalogging:Update()
         end
