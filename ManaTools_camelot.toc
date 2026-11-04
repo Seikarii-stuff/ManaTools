@@ -1,0 +1,20 @@
+## Interface: 16001
+## Title: ManaTools
+## Notes: QoL addon for chat, skips, queues, tooltips, and logging.
+## Author: Seikarii
+## Version: 1.1.0
+## IconTexture: 136159
+## SavedVariables: ManaToolsDB
+
+Bootstrap.lua
+NoWasteCoin\NoWasteCoin.lua
+CinematicSkip\cinematicskip.lua
+CinematicSkip\profesionskip.lua
+NoInfo\NoInfo.lua
+ChatCopy\ChatCopy.lua
+Permalogging\Permalogging.lua
+QueueAutoAccept\AutoInvite.lua
+QueueAutoAccept\QueueAutoAccept.lua
+Options.lua
+SlashCmd.lua
+

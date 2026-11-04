@@ -1,4 +1,4 @@
-## Interface: 120100, 120150
+## Interface: 120150, 120170
 ## Title: ManaTools
 ## Notes: QoL addon for chat, skips, queues, tooltips, and logging.
 ## Author: Seikarii
