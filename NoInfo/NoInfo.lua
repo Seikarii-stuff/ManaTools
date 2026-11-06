@@ -19,7 +19,7 @@ local function NormalizeInspectMode(value)
         return 0
     end
     if value == nil then
-        return 0
+        return 1
     end
     if value == 1 or value == 2 then
         return value

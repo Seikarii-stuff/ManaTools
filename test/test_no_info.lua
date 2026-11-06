@@ -90,7 +90,7 @@ local function runTest()
     WorldMapFrame = newFrame()
     Enum = { TooltipDataType = { Item = 0, Quest = 1 } }
 
-    local db = { enabled = true, inspectMode = 0 }
+    local db = { enabled = true }
     local namespace = { DB = { NoInfo = db }, NoInfo = {} }
 
     function CreateFrame(_, name)
@@ -102,7 +102,7 @@ local function runTest()
 
     assert((loader or load)(script, "NoInfo/NoInfo.lua"))("ManaTools", namespace)
     assert(namespace.NoInfo.Update, "NoInfo.Update exists")
-    assert(db.inspectMode == 0, "inspect mode starts in OFF state")
+    assert(db.inspectMode == 1, "inspect mode starts in NORMAL state")
 
     assert(GameTooltip:GetScript("OnShow") == originalOnShow, "original Blizzard OnShow remains installed")
     assert((GameTooltip.hooks and GameTooltip.hooks["OnShow"] and #GameTooltip.hooks["OnShow"]) >= 1, "NoInfo installs an OnShow hook without replacing Blizzard")
@@ -110,27 +110,27 @@ local function runTest()
     GameTooltip.hidden = false
     triggerOnShow(GameTooltip)
     assert(originalShowCount == 1, "original OnShow still runs")
-    assert(GameTooltip.hidden == true, "generic tooltip is hidden immediately, without a deferred tick")
+    assert(GameTooltip.hidden == false, "NORMAL inspect mode lets generic tooltips show")
     flushDeferredCallbacks()
-    assert(GameTooltip.hidden == true, "deferred callbacks cannot re-show or revive the hidden tooltip")
+    assert(GameTooltip.hidden == false, "deferred callbacks do not hide generic tooltips in NORMAL state")
 
     local button = _G.ManaToolsNoInfoInspectButton
     assert(button ~= nil, "inspect button is created")
     assert(button.shown == true, "button is shown while enabled")
     assert(button.point[2] == Minimap, "button is anchored to Minimap")
     assert(button.icon.atlas == "talents-search-match", "button uses the Blizzard magnifier atlas")
-    assert(button.alpha == 0.55, "button starts dimmed in OFF state")
+    assert(button.alpha == 1, "button starts illuminated in NORMAL state")
 
     _G.IsShiftKeyDown = function() return false end
     button.scripts.OnClick(button, "LeftButton")
-    assert(db.inspectMode == 1, "normal click from OFF enables normal inspect state")
-    assert(button.alpha == 1, "button is illuminated in NORMAL state")
+    assert(db.inspectMode == 0, "normal click from NORMAL disables inspect mode")
+    assert(button.alpha == 0.55, "button dims in OFF state")
 
     GameTooltip.hidden = false
     triggerOnShow(GameTooltip)
     flushDeferredCallbacks()
-    assert(originalShowCount == 2, "original OnShow runs in NORMAL state")
-    assert(GameTooltip.hidden == false, "NORMAL inspect mode lets generic tooltips show")
+    assert(originalShowCount == 2, "original OnShow still runs when disabled")
+    assert(GameTooltip.hidden == true, "OFF inspect mode hides generic tooltips")
 
     db.inspectMode = 0
     GameTooltip.hidden = false

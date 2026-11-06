@@ -27,7 +27,7 @@ if ManaTools.DB.Permalogging.enabled == nil then
     ManaTools.DB.Permalogging.enabled = true
 end
 if ManaTools.DB.NoInfo.inspectMode == nil then
-    ManaTools.DB.NoInfo.inspectMode = 0
+    ManaTools.DB.NoInfo.inspectMode = 1
 elseif ManaTools.DB.NoInfo.inspectMode == true then
     ManaTools.DB.NoInfo.inspectMode = 1
 elseif ManaTools.DB.NoInfo.inspectMode == false then
